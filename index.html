@@ -4,9 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SIMOSD — Sistem Informasi Mobil Siaga Desa Kalikurmo</title>
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Import Map untuk React & Lucide Icons langsung di Browser -->
   <script type="importmap">
   {
     "imports": {
@@ -16,7 +14,6 @@
     }
   }
   </script>
-  <!-- Kompilator JSX Otomatis untuk GitHub Pages -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 antialiased">
@@ -30,7 +27,7 @@
 
   <script type="module">
     async function startApp() {
-      const candidatePaths = ['./App.jsx', './app.jsx', './src/App.jsx'];
+      const candidatePaths = ['./app.jsx', './App.jsx', './src/App.jsx'];
       let response = null;
 
       for (const path of candidatePaths) {
@@ -42,12 +39,15 @@
       }
 
       if (!response) {
-        throw new Error('File App.jsx belum ditemukan. Pastikan Anda sudah membuat file bernama App.jsx di sebelah index.html pada repository GitHub.');
+        throw new Error('File app.jsx atau App.jsx belum ditemukan di repository GitHub.');
       }
 
       let rawCode = await response.text();
 
-      // Ubah export default menjadi fungsi biasa agar bisa langsung di-render
+      // Perbaikan otomatis jika ada spasi setelah underscore akibat copy-paste (contoh: INITIAL_VILLAGE_ OFFICIALS)
+      rawCode = rawCode.replace(/([A-Z0-9])_\s+([A-Z0-9])/g, '$1_$2');
+
+      // Ubah export default menjadi fungsi biasa agar langsung di-render
       rawCode = rawCode.replace(/export\s+default\s+function\s+App/, 'function App');
       rawCode += `\nimport { createRoot as __createRoot } from 'react-dom/client';\n__createRoot(document.getElementById('root')).render(<App />);\n`;
 
@@ -64,9 +64,9 @@
 
     startApp().catch((err) => {
       document.getElementById('root').innerHTML = `
-        <div style="max-width: 600px; margin: 60px auto; padding: 24px; background: #1e293b; border: 1px solid #ef4444; border-radius: 16px; font-family: sans-serif; color: #f8fafc;">
+        <div style="max-width: 650px; margin: 60px auto; padding: 24px; background: #1e293b; border: 1px solid #ef4444; border-radius: 16px; font-family: sans-serif; color: #f8fafc;">
           <h3 style="color: #f87171; margin-top: 0;">Gagal Memuat Aplikasi</h3>
-          <p style="color: #cbd5e1; line-height: 1.6;">${err.message}</p>
+          <pre style="white-space: pre-wrap; color: #cbd5e1; font-size: 13px; line-height: 1.6; background: #0f172a; padding: 12px; border-radius: 8px;">${err.message}</pre>
         </div>
       `;
       console.error(err);
