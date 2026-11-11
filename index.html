@@ -9,6 +9,8 @@
   {
     "imports": {
       "react": "https://esm.sh/react@18.2.0",
+      "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
+      "react-dom": "https://esm.sh/react-dom@18.2.0",
       "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
       "lucide-react": "https://esm.sh/lucide-react@0.344.0?deps=react@18.2.0"
     }
@@ -44,7 +46,6 @@
 
       let rawCode = await response.text();
 
-      // Bersihkan otomatis semua nama variabel yang tidak sengaja terpisah spasi setelah garis bawah (_)
       while (/([A-Za-z0-9])_\s+([A-Za-z0-9])/g.test(rawCode)) {
         rawCode = rawCode.replace(/([A-Za-z0-9])_\s+([A-Za-z0-9])/g, '$1_$2');
       }
@@ -53,7 +54,7 @@
       rawCode += `\nimport { createRoot as __createRoot } from 'react-dom/client';\n__createRoot(document.getElementById('root')).render(<App />);\n`;
 
       const compiledCode = window.Babel.transform(rawCode, {
-        presets: ['react'],
+        presets: [['react', { runtime: 'classic' }]],
         filename: 'app.jsx'
       }).code;
 
@@ -66,7 +67,7 @@
     startApp().catch((err) => {
       document.getElementById('root').innerHTML = `
         <div style="max-width: 650px; margin: 60px auto; padding: 24px; background: #1e293b; border: 1px solid #ef4444; border-radius: 16px; font-family: sans-serif; color: #f8fafc;">
-          <h3 style="color: #f87171; margin-top: 0;">Gagal Memuat Aplikasi (Versi Baru)</h3>
+          <h3 style="color: #f87171; margin-top: 0;">Gagal Memuat Aplikasi</h3>
           <pre style="white-space: pre-wrap; color: #cbd5e1; font-size: 13px; line-height: 1.6; background: #0f172a; padding: 12px; border-radius: 8px;">${err.message}</pre>
         </div>
       `;
