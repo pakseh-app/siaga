@@ -13,29 +13,18 @@ import {
 const RT_RW_LIST = Array.from({ length: 15 }, (_, i) => String(i + 1).padStart(2, '0'));
 
 // ============================================================================
-// TEMPAT TEMPEL LINK GOOGLE APPS SCRIPT (BARIS 16):
-// Tempel link https://script.google.com/macros/s/.../exec di antara tanda kutip di bawah ini
+// LINK GOOGLE APPS SCRIPT DESA KALIKURMO (SUDAH TERPASANG OTOMATIS)
 // ============================================================================
 const DEFAULT_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyCxdTF-88mw3GVkKwXiiDecmz07ZgUcckd8TbzMGSpfSNPYNzthUDIyfU5IjpVutG2/exec';
 
-const STORAGE_KEY = 'SIMOSD_DESA_KALIKURMO_MINGGUAN_V1';
-const THEME_KEY = 'SIMOSD_THEME_MODE';
+const STORAGE_KEY = 'SIMOSD_DESA_KALIKURMO_MINGGUAN_V2';
+const THEME_KEY = 'SIMOSD_THEME_MODE_V2';
 
 // Kode Google Apps Script (Kode.gs) untuk Sistem Iuran Mingguan
 const KODE_GS_SCRIPT = [
   '// ================================================================',
   '// KODE.GS - DATABASE REALTIME MOBIL SIAGA DESA KALIKURMO (MINGGUAN)',
   '// ================================================================',
-  '// CARA PASANG:',
-  '// 1. Buat Google Sheet baru di Google Drive Anda.',
-  '// 2. Klik menu Ekstensi (Extensions) -> Apps Script.',
-  '// 3. Hapus semua kode di Code.gs, lalu tempel (Paste) kode ini.',
-  '// 4. Klik Simpan, lalu klik Terapkan (Deploy) -> Deployment baru.',
-  '// 5. Pilih jenis: Aplikasi Web (Web App).',
-  '// 6. Jalankan sebagai: Saya (Me) | Akses: Siapa saja (Anyone).',
-  '// 7. Salin URL Aplikasi Web lalu tempel di menu Google Sheet aplikasi',
-  '//    atau di variabel DEFAULT_SHEET_URL baris 16 pada file app.jsx.',
-  '',
   'var SHEET_NAMES = {',
   '  STATE: "Database_JSON",',
   '  WARGA: "Data_Warga",',
@@ -636,12 +625,12 @@ export default function App() {
     }
   }, []);
 
-  // State Mode Malam / Mode Terang
+  // State Mode Terang / Mode Malam (Default langsung di Tema Terang / 'light')
   const [themeMode, setThemeMode] = useState(() => {
     try {
-      return localStorage.getItem(THEME_KEY) || 'dark';
+      return localStorage.getItem(THEME_KEY) || 'light';
     } catch (e) {
-      return 'dark';
+      return 'light';
     }
   });
 
@@ -671,8 +660,11 @@ export default function App() {
   const [villageOfficials, setVillageOfficials] = useState(() => savedState?.villageOfficials || INITIAL_OFFICIALS);
   const [tripLogs, setTripLogs] = useState(() => savedState?.tripLogs || INITIAL_TRIPS);
 
-  // Google Sheets Sync State
-  const [sheetUrl, setSheetUrl] = useState(() => localStorage.getItem('SIMOSD_SHEET_URL') || DEFAULT_SHEET_URL);
+  // Google Sheets Sync State (Otomatis menggunakan DEFAULT_SHEET_URL Anda)
+  const [sheetUrl, setSheetUrl] = useState(() => {
+    const savedUrl = localStorage.getItem('SIMOSD_SHEET_URL');
+    return savedUrl && savedUrl.startsWith('https://script.google.com') ? savedUrl : DEFAULT_SHEET_URL;
+  });
   const [syncStatus, setSyncStatus] = useState('IDLE');
   const [lastSyncTime, setLastSyncTime] = useState('-');
   const [copiedCode, setCopiedCode] = useState(false);
@@ -721,7 +713,7 @@ export default function App() {
 
   useEffect(() => {
     try {
-      localStorage.setItem('SIMOSD_SHEET_URL', sheetUrl);
+      if (sheetUrl) localStorage.setItem('SIMOSD_SHEET_URL', sheetUrl);
     } catch (e) {}
   }, [sheetUrl]);
 
@@ -1147,12 +1139,12 @@ export default function App() {
     let nextDrivers = [];
     if (driverData.id) {
       nextDrivers = villageOfficials.drivers.map((d) => (d.id === driverData.id ? driverData : d));
-      addAuditLog('UPDATE_SOPIR', 'Memperbarui data sopir Mobil Siaga: ' + driverData.nama);
+      addAuditLog('UPDATE_SOPIR', 'Memperbarui data sopir Mobil Siaga: ' + driverData.nama + ' (' + (driverData.panggilan || '-') + ')');
       showToast('Profil Sopir ' + driverData.nama + ' berhasil diperbarui!');
     } else {
       const newId = 'DRV-' + String(villageOfficials.drivers.length + 1).padStart(2, '0');
       nextDrivers = [...villageOfficials.drivers, { ...driverData, id: newId }];
-      addAuditLog('TAMBAH_SOPIR', 'Menambahkan sopir baru Mobil Siaga: ' + driverData.nama);
+      addAuditLog('TAMBAH_SOPIR', 'Menambahkan sopir baru Mobil Siaga: ' + driverData.nama + ' (' + (driverData.panggilan || '-') + ')');
       showToast('Sopir baru ' + driverData.nama + ' berhasil ditambahkan!');
     }
     const nextOff = { ...villageOfficials, drivers: nextDrivers };
@@ -1167,7 +1159,7 @@ export default function App() {
 
   return (
     <div className={(themeMode === 'light' ? 'theme-light ' : '') + 'min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white transition-colors duration-200'}>
-      {/* CSS Otomatis untuk Mode Terang (Light Mode) */}
+      {/* CSS Otomatis untuk Mode Terang (Default Light Mode) */}
       {themeMode === 'light' && (
         <style>{`
           .theme-light.bg-slate-950, .theme-light .bg-slate-950 { background-color: #f8fafc !important; color: #0f172a !important; }
@@ -1625,7 +1617,7 @@ export default function App() {
         />
       )}
 
-      {/* Footer & Watermark Resmi Desa Kalikurmo */}
+      {/* Footer & Watermark Pembuat Aplikasi (powered by.pakseh) */}
       <footer className="relative overflow-hidden border-t border-slate-800/90 bg-slate-900/90 py-8 px-4 lg:px-8 mt-12">
         <div className="pointer-events-none select-none flex items-center justify-center opacity-10 mb-3">
           <span className="text-3xl sm:text-5xl md:text-6xl font-black tracking-widest text-emerald-400 uppercase text-center">
@@ -1633,16 +1625,17 @@ export default function App() {
           </span>
         </div>
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-          <div className="flex items-center gap-2.5">
-            <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
-            <div>
-              <p className="font-bold text-slate-200">
-                WATERMARK RESMI: SISTEM INFORMASI MOBIL SIAGA DESA KALIKURMO
-              </p>
-              <p className="text-[11px] text-slate-400">
-                Transparansi Iuran Mingguan Warga & Kas Operasional Armada Siaga Desa Kalikurmo
-              </p>
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400 tracking-wide">powered by.</span>
+            <span
+              style={{
+                fontFamily: "'Brush Script MT', 'Segoe Script', 'Lucida Handwriting', 'Georgia', cursive, serif",
+                color: '#9ca3af'
+              }}
+              className="text-2xl font-semibold italic tracking-wider select-none"
+            >
+              pakseh
+            </span>
           </div>
           <div className="text-center sm:text-right">
             <span className="inline-block px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-bold text-[11px]">
@@ -1849,7 +1842,10 @@ function PublicPortalView({
                 )}
                 <div>
                   <h3 className="text-base font-bold text-white">
-                    {drv.nama} <span className="text-xs text-slate-400">({drv.panggilan})</span>
+                    {drv.nama}{' '}
+                    {drv.panggilan ? (
+                      <span className="text-xs text-slate-400">({drv.panggilan})</span>
+                    ) : null}
                   </h3>
                   <p className="text-xs text-emerald-400 font-semibold">{drv.shift}</p>
                   <p className="text-[11px] text-slate-400">
@@ -2694,7 +2690,7 @@ function RiwayatAntarWargaView({ tripLogs, residents, drivers, dusunOptions, sys
           >
             {drivers.map((d) => (
               <option key={d.id} value={d.id}>
-                {d.nama} ({d.noHP})
+                {d.nama} {d.panggilan ? '(' + d.panggilan + ')' : ''} - {d.noHP}
               </option>
             ))}
           </select>
@@ -2779,7 +2775,7 @@ function RiwayatAntarWargaView({ tripLogs, residents, drivers, dusunOptions, sys
 }
 
 // ============================================================================
-// 5. PROFIL KEPALA DESA & SOPIR + FITUR UPLOAD FOTO
+// 5. PROFIL KEPALA DESA & SOPIR + EDIT NAMA SOPIR & NAMA DALAM TANDA KURUNG
 // ============================================================================
 function ProfilKadesSopirView({ villageOfficials, dusunOptions, onUpdateKades, onSaveDriver, showToast }) {
   const [kadesForm, setKadesForm] = useState(villageOfficials.kades);
@@ -2888,7 +2884,7 @@ function ProfilKadesSopirView({ villageOfficials, dusunOptions, onUpdateKades, o
           </button>
         </div>
 
-        {/* Daftar Sopir & Upload Foto Sopir */}
+        {/* Daftar Sopir & Edit Nama Lengkap + Nama Dalam Tanda Kurung */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-white flex items-center gap-2">
@@ -2945,7 +2941,12 @@ function ProfilKadesSopirView({ villageOfficials, dusunOptions, onUpdateKades, o
                     </label>
                   </div>
                   <div className="text-xs">
-                    <p className="font-bold text-white text-sm">{drv.nama}</p>
+                    <p className="font-bold text-white text-sm">
+                      {drv.nama}{' '}
+                      {drv.panggilan ? (
+                        <span className="text-slate-400 font-normal">({drv.panggilan})</span>
+                      ) : null}
+                    </p>
                     <p className="text-emerald-400 font-semibold">{drv.noHP}</p>
                     <p className="text-slate-400">
                       {drv.dusun} • RT {drv.rt}/RW {drv.rw || '01'} • {drv.shift}
@@ -2953,10 +2954,10 @@ function ProfilKadesSopirView({ villageOfficials, dusunOptions, onUpdateKades, o
                   </div>
                 </div>
                 <button
-                  onClick={() => setEditingDriver(drv)}
-                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 font-semibold"
+                  onClick={() => setEditingDriver({ ...drv, panggilan: drv.panggilan || '' })}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 text-xs font-bold transition-all"
                 >
-                  Edit
+                  Edit Nama & Data
                 </button>
               </div>
             ))}
@@ -2973,55 +2974,102 @@ function ProfilKadesSopirView({ villageOfficials, dusunOptions, onUpdateKades, o
                 onSaveDriver(editingDriver);
                 setEditingDriver(null);
               }}
-              className="bg-slate-950 border border-emerald-500/40 rounded-xl p-4 space-y-3 text-xs"
+              className="bg-slate-950 border-2 border-emerald-500/50 rounded-xl p-4 space-y-3 text-xs"
             >
-              <h4 className="font-bold text-emerald-300">
-                {editingDriver.id ? 'Edit Profil Sopir' : 'Tambah Sopir Baru'}
+              <h4 className="font-bold text-emerald-400 text-sm">
+                {editingDriver.id ? 'Edit Nama & Profil Sopir' : 'Tambah Sopir Baru'}
               </h4>
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="text"
-                  placeholder="Nama Lengkap Sopir"
-                  value={editingDriver.nama}
-                  onChange={(e) => setEditingDriver({ ...editingDriver, nama: e.target.value })}
-                  className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-white"
-                />
-                <input
-                  type="text"
-                  placeholder="Nomor HP / WA"
-                  value={editingDriver.noHP}
-                  onChange={(e) => setEditingDriver({ ...editingDriver, noHP: e.target.value })}
-                  className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-white"
-                />
-                <input
-                  type="text"
-                  placeholder="Ketik Nama Dusun"
-                  value={editingDriver.dusun}
-                  onChange={(e) => setEditingDriver({ ...editingDriver, dusun: e.target.value })}
-                  className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-white"
-                />
-                <div className="grid grid-cols-2 gap-1">
-                  <select
-                    value={editingDriver.rt}
-                    onChange={(e) => setEditingDriver({ ...editingDriver, rt: e.target.value })}
-                    className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-white"
-                  >
-                    {RT_RW_LIST.map((r) => (
-                      <option key={r} value={r}>RT {r}</option>
-                    ))}
-                  </select>
-                  <select
-                    value={editingDriver.rw || '01'}
-                    onChange={(e) => setEditingDriver({ ...editingDriver, rw: e.target.value })}
-                    className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-white"
-                  >
-                    {RT_RW_LIST.map((r) => (
-                      <option key={r} value={r}>RW {r}</option>
-                    ))}
-                  </select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block text-slate-400 mb-1">Nama Lengkap Sopir</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Slamet Riyadi"
+                    value={editingDriver.nama}
+                    onChange={(e) => setEditingDriver({ ...editingDriver, nama: e.target.value })}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-white font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1">
+                    Nama di Dalam Kurung (...) / Panggilan
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Bang Slamet (Kosongkan jika tanpa kurung)"
+                    value={editingDriver.panggilan || ''}
+                    onChange={(e) => setEditingDriver({ ...editingDriver, panggilan: e.target.value })}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-white font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1">Nomor HP / WhatsApp</label>
+                  <input
+                    type="text"
+                    placeholder="0812xxxxxxxx"
+                    value={editingDriver.noHP}
+                    onChange={(e) => setEditingDriver({ ...editingDriver, noHP: e.target.value })}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1">Jadwal Shift / Siaga</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Shift Pagi / Siaga 24 Jam"
+                    value={editingDriver.shift || ''}
+                    onChange={(e) => setEditingDriver({ ...editingDriver, shift: e.target.value })}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1">Nama Dusun (Ketik Manual)</label>
+                  <input
+                    type="text"
+                    placeholder="Ketik Nama Dusun"
+                    value={editingDriver.dusun}
+                    onChange={(e) => setEditingDriver({ ...editingDriver, dusun: e.target.value })}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-white"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <div>
+                    <label className="block text-slate-400 mb-1">RT</label>
+                    <select
+                      value={editingDriver.rt}
+                      onChange={(e) => setEditingDriver({ ...editingDriver, rt: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-white"
+                    >
+                      {RT_RW_LIST.map((r) => (
+                        <option key={r} value={r}>RT {r}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 mb-1">RW</label>
+                    <select
+                      value={editingDriver.rw || '01'}
+                      onChange={(e) => setEditingDriver({ ...editingDriver, rw: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-white"
+                    >
+                      {RT_RW_LIST.map((r) => (
+                        <option key={r} value={r}>RW {r}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-slate-400 mb-1">Keterangan Pengalaman Sopir</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: 8 Tahun Sopir Ambulans Desa Kalikurmo"
+                    value={editingDriver.pengalaman || ''}
+                    onChange={(e) => setEditingDriver({ ...editingDriver, pengalaman: e.target.value })}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-white"
+                  />
                 </div>
               </div>
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setEditingDriver(null)}
@@ -3033,7 +3081,7 @@ function ProfilKadesSopirView({ villageOfficials, dusunOptions, onUpdateKades, o
                   type="submit"
                   className="px-4 py-1.5 rounded-lg bg-emerald-600 text-white font-bold"
                 >
-                  Simpan Sopir
+                  Simpan Data Sopir
                 </button>
               </div>
             </form>
@@ -3305,10 +3353,10 @@ function DatabaseSheetView({ sheetUrl, setSheetUrl, syncStatus, lastSyncTime, on
         <div className="space-y-1">
           <h3 className="text-base font-bold text-white flex items-center gap-2">
             <Database className="w-5 h-5 text-emerald-400" />
-            TEMPAT MEMASUKKAN LINK WEB APP GOOGLE APPS SCRIPT
+            LINK WEB APP GOOGLE APPS SCRIPT (TERHUBUNG)
           </h3>
           <p className="text-xs text-slate-300">
-            Tempelkan (*Paste*) URL Web App dari Google Apps Script Anda (`https://script.google.com/macros/s/..../exec`) di kotak di bawah ini, lalu klik <strong>Simpan ke Google Sheet</strong>.
+            Link Google Apps Script Anda sudah terpasang otomatis. Klik tombol <strong>Simpan ke Google Sheet</strong> untuk mengirim data awal ke Spreadsheet Anda.
           </p>
         </div>
 
@@ -3337,9 +3385,6 @@ function DatabaseSheetView({ sheetUrl, setSheetUrl, syncStatus, lastSyncTime, on
         <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-300 space-y-1">
           <p>
             Status Sinkronisasi: <strong className="text-emerald-400">{syncStatus}</strong> • Terakhir Update: <strong>{lastSyncTime}</strong>
-          </p>
-          <p className="text-[11px] text-amber-300">
-            Tips GitHub Pages: Agar HP warga otomatis terhubung tanpa perlu menempelkan link lagi, tempelkan juga link tersebut pada <strong>baris ke-16</strong> di file <code>app.jsx</code> (<code>const DEFAULT_SHEET_URL = 'LINK_ANDA';</code>).
           </p>
         </div>
       </div>
