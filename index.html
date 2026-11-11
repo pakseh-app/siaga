@@ -53,6 +53,118 @@ import {
 const RT_RW_OPTIONS = Array.from({ length: 15 }, (_, i) => String(i + 1).padStart(2, '0'));
 
 // ==========================================
+// KONFIGURASI HOSTING GITHUB PAGES & STORAGE
+// ==========================================
+// Tempelkan URL Web App Google Apps Script Anda di antara tanda kutip di bawah ini
+// agar saat di-hosting di GitHub Pages, seluruh perangkat warga otomatis terhubung ke Google Sheet Desa Kalikurmo.
+const DEFAULT_GOOGLE_SHEET_WEB_APP_URL = '';
+const LOCAL_STORAGE_KEY = 'SIMOSD_DESA_KALIKURMO_DB_V1';
+
+// Template File Konfigurasi untuk Hosting Otomatis di GitHub Pages (Vite + GitHub Actions)
+const GITHUB_VITE_CONFIG_CODE = `import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+// Konfigurasi resmi untuk GitHub Pages (mendukung semua nama repository)
+export default defineConfig({
+  plugins: [react()],
+  base: './',
+});`;
+
+const GITHUB_PACKAGE_JSON_CODE = `{
+  "name": "simosd-desa-kalikurmo",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "lucide-react": "^0.344.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.1.4"
+  }
+}`;
+
+const GITHUB_INDEX_HTML_CODE = `<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SIMOSD — Sistem Informasi Mobil Siaga Desa Kalikurmo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-slate-50">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>`;
+
+const GITHUB_MAIN_JSX_CODE = `import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App.jsx';
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);`;
+
+const GITHUB_WORKFLOW_YML_CODE = `name: Deploy SIMOSD Desa Kalikurmo ke GitHub Pages
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Dependencies
+        run: npm install
+      - name: Build Aplikasi React
+        run: npm run build
+      - name: Upload Artifact ke GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: \${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy ke GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4`;
+
+// ==========================================
 // KODE.GS LENGKAP UNTUK DATABASE GOOGLE SHEETS REALTIME
 // ==========================================
 const GOOGLE_APPS_SCRIPT_CODE = `/**
@@ -732,6 +844,16 @@ const INITIAL_AUDIT_LOGS = [
 // ==========================================
 
 export default function App() {
+  // Baca cache lokal browser (agar saat di-hosting di GitHub Pages & di-refresh, data tetap tersimpan)
+  const savedLocalDb = useMemo(() => {
+    try {
+      const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }, []);
+
   // Tanggal acuan sistem (Default: 11 November 2026 sesuai konteks berjalan)
   const [systemDate, setSystemDate] = useState('2026-11-11');
 
@@ -746,20 +868,36 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('PUBLIK');
   // Pilihan Tab: 'DASHBOARD' | 'DATA_WARGA' | 'RIWAYAT' | 'RIWAYAT_ANTAR' | 'KAS_SIAGA' | 'PROFIL_DESA' | 'PENGATURAN_IURAN' | 'GOOGLE_SHEET' | 'AUDIT_LOG' | 'PUBLIK'
 
-  // Database States
-  const [tariffHistory, setTariffHistory] = useState(INITIAL_TARIFF_HISTORY);
-  const [residents, setResidents] = useState(INITIAL_RESIDENTS);
-  const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
-  const [otherCashEntries, setOtherCashEntries] = useState(INITIAL_OTHER_CASH_ENTRIES);
-  const [villageOfficials, setVillageOfficials] = useState(INITIAL_VILLAGE_OFFICIALS);
-  const [tripLogs, setTripLogs] = useState(INITIAL_TRIP_LOGS);
-  const [auditLogs, setAuditLogs] = useState(INITIAL_AUDIT_LOGS);
+  // Database States (Terintegrasi dengan LocalStorage & Google Sheet untuk GitHub Pages)
+  const [tariffHistory, setTariffHistory] = useState(
+    () => savedLocalDb?.tariffHistory || INITIAL_TARIFF_HISTORY
+  );
+  const [residents, setResidents] = useState(
+    () => savedLocalDb?.residents || INITIAL_RESIDENTS
+  );
+  const [transactions, setTransactions] = useState(
+    () => savedLocalDb?.transactions || INITIAL_TRANSACTIONS
+  );
+  const [otherCashEntries, setOtherCashEntries] = useState(
+    () => savedLocalDb?.otherCashEntries || INITIAL_OTHER_CASH_ENTRIES
+  );
+  const [villageOfficials, setVillageOfficials] = useState(
+    () => savedLocalDb?.villageOfficials || INITIAL_VILLAGE_OFFICIALS
+  );
+  const [tripLogs, setTripLogs] = useState(
+    () => savedLocalDb?.tripLogs || INITIAL_TRIP_LOGS
+  );
+  const [auditLogs, setAuditLogs] = useState(
+    () => savedLocalDb?.auditLogs || INITIAL_AUDIT_LOGS
+  );
 
   // State Integrasi Realtime Google Sheets
-  const [googleSheetUrl, setGoogleSheetUrl] = useState('');
+  const [googleSheetUrl, setGoogleSheetUrl] = useState(
+    () => DEFAULT_GOOGLE_SHEET_WEB_APP_URL || savedLocalDb?.googleSheetUrl || ''
+  );
   const [autoSyncSheet, setAutoSyncSheet] = useState(true);
   const [syncStatus, setSyncStatus] = useState('LOCAL_READY'); // 'LOCAL_READY' | 'SYNCING' | 'SYNCED' | 'ERROR'
-  const [lastSyncedAt, setLastSyncedAt] = useState('-');
+  const [lastSyncedAt, setLastSyncedAt] = useState(() => savedLocalDb?.lastSyncedAt || '-');
 
   // Notifikasi Banner / Toast
   const [toast, setToast] = useState(null);
@@ -769,6 +907,36 @@ export default function App() {
       setToast((prev) => (prev?.message === message ? null : prev));
     }, 4500);
   };
+
+  // Simpan otomatis ke LocalStorage setiap kali data berubah (Penting untuk GitHub Pages)
+  React.useEffect(() => {
+    try {
+      const snapshot = {
+        tariffHistory,
+        residents,
+        transactions,
+        otherCashEntries,
+        villageOfficials,
+        tripLogs,
+        auditLogs,
+        googleSheetUrl,
+        lastSyncedAt,
+      };
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(snapshot));
+    } catch (e) {
+      // Abaikan jika kuota storage penuh
+    }
+  }, [
+    tariffHistory,
+    residents,
+    transactions,
+    otherCashEntries,
+    villageOfficials,
+    tripLogs,
+    auditLogs,
+    googleSheetUrl,
+    lastSyncedAt,
+  ]);
 
   // Fungsi Push & Pull Realtime ke Google Sheets Web App
   const pushToGoogleSheet = async (customUrl) => {
@@ -830,6 +998,14 @@ export default function App() {
       showToast('Gagal memuat dari Google Sheet. Pastikan URL Web App & akses "Siapa Saja" aktif.', 'error');
     }
   };
+
+  // Otomatis muat data terbaru dari Google Sheet saat halaman GitHub Pages pertama kali dibuka oleh warga
+  React.useEffect(() => {
+    const initialUrl = (DEFAULT_GOOGLE_SHEET_WEB_APP_URL || googleSheetUrl).trim();
+    if (initialUrl) {
+      pullFromGoogleSheet(initialUrl);
+    }
+  }, []);
 
   // Trigger Auto-Sync Realtime setiap ada perubahan database
   React.useEffect(() => {
@@ -1699,7 +1875,7 @@ export default function App() {
                   },
                   {
                     id: 'GOOGLE_SHEET',
-                    label: 'Google Sheet & Kode.gs',
+                    label: 'Google Sheet & GitHub',
                     icon: Database,
                   },
                   { id: 'AUDIT_LOG', label: 'Audit Log', icon: ShieldCheck },
@@ -3000,9 +3176,32 @@ export default function App() {
               showToast('Sinkronisasi data ke Google Sheet dikirim!');
             }}
             onPullNow={() => pullFromGoogleSheet(googleSheetUrl)}
-            onCopyCode={() =>
-              showToast('Kode.gs berhasil disalin! Silakan tempel di Google Apps Script.')
+            onCopyCode={(msg) =>
+              showToast(msg || 'Kode berhasil disalin ke clipboard!')
             }
+            onExportJson={() => {
+              const payload = {
+                desa: 'Desa Kalikurmo',
+                exportedAt: new Date().toISOString(),
+                tariffHistory,
+                residents,
+                transactions,
+                otherCashEntries,
+                villageOfficials,
+                tripLogs,
+                auditLogs,
+              };
+              const blob = new Blob([JSON.stringify(payload, null, 2)], {
+                type: 'application/json',
+              });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `database-simosd-kalikurmo-${systemDate}.json`;
+              a.click();
+              URL.revokeObjectURL(url);
+              showToast('Backup JSON Database Desa Kalikurmo berhasil diunduh!');
+            }}
           />
         )}
 
@@ -3585,7 +3784,7 @@ export default function App() {
 
           <div className="text-center sm:text-right">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-emerald-400 font-bold text-[11px] tracking-wider uppercase">
-              <ShieldCheck className="w-3.5 h-3.5" /> Official • Desa Kalikurmo
+              <ShieldCheck className="w-3.5 h-3.5" /> Official Watermark • Desa Kalikurmo
             </span>
             <p className="text-[11px] text-slate-500 mt-1">
               © {new Date().getFullYear()} Pemerintah Desa Kalikurmo. Seluruh Hak Cipta Dilindungi.
@@ -5375,19 +5574,31 @@ function GoogleSheetIntegrationModule({
   onPushNow,
   onPullNow,
   onCopyCode,
+  onExportJson,
 }) {
-  const [copied, setCopied] = useState(false);
+  const [copiedKey, setCopiedKey] = useState('');
+  const [subTab, setSubTab] = useState('GITHUB_HOSTING'); // 'GITHUB_HOSTING' | 'GOOGLE_SHEET'
 
-  const handleCopyKodeGs = () => {
+  const copyTextToClipboard = (text, keyName, toastLabel) => {
     const textarea = document.createElement('textarea');
-    textarea.value = GOOGLE_APPS_SCRIPT_CODE;
+    textarea.value = text;
     document.body.appendChild(textarea);
     textarea.select();
     document.execCommand('copy');
     document.body.removeChild(textarea);
-    setCopied(true);
-    onCopyCode();
-    setTimeout(() => setCopied(false), 3000);
+    setCopiedKey(keyName);
+    onCopyCode(toastLabel);
+    setTimeout(() => setCopiedKey(''), 3000);
+  };
+
+  const downloadTextFile = (filename, content) => {
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -5396,35 +5607,63 @@ function GoogleSheetIntegrationModule({
         <div>
           <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <Database className="w-6 h-6 text-emerald-600" />
-            Integrasi Real-Time Database Google Sheets & File Kode.gs
+            Hosting GitHub Pages & Database Real-Time Google Sheets
           </h2>
           <p className="text-sm text-slate-500 mt-0.5">
-            Hubungkan aplikasi ini dengan Google Sheet Desa agar seluruh pembayaran warga, kas,
-            profil sopir, dan riwayat pengantaran tersimpan secara real-time di Spreadsheet.
+            Pusat pengaturan untuk meng-online-kan aplikasi SIMOSD Desa Kalikurmo di{' '}
+            <strong>GitHub Pages (Gratis)</strong> dengan database real-time{' '}
+            <strong>Google Sheets</strong>.
           </p>
         </div>
-        <div className="flex items-center gap-2 bg-slate-100 px-3.5 py-2 rounded-xl text-xs font-semibold">
-          <Cloud className="w-4 h-4 text-emerald-600" />
-          <span>
-            Status:{' '}
-            <strong className="text-emerald-700">
-              {syncStatus === 'SYNCING'
-                ? 'Sedang Sinkronisasi...'
-                : syncStatus === 'SYNCED'
-                ? `Tersinkron (${lastSyncedAt})`
-                : syncStatus === 'ERROR'
-                ? ' Periksa URL Web App'
-                : 'Siap Dihubungkan'}
-            </strong>
-          </span>
+        <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl">
+          <button
+            type="button"
+            onClick={() => setSubTab('GITHUB_HOSTING')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition ${
+              subTab === 'GITHUB_HOSTING'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            🚀 Panduan & File Hosting GitHub
+          </button>
+          <button
+            type="button"
+            onClick={() => setSubTab('GOOGLE_SHEET')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition ${
+              subTab === 'GOOGLE_SHEET'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            📊 Koneksi Google Sheet & Kode.gs
+          </button>
         </div>
       </div>
 
-      {/* Pengaturan Koneksi URL Web App Google Sheet */}
+      {/*Pengaturan Koneksi URL Web App Google Sheet (Selalu Tampil di Atas) */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <h3 className="font-bold text-slate-900 text-base">
-          1. Pengaturan URL Web App Google Apps Script
-        </h3>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="font-bold text-slate-900 text-base">
+            URL Web App Database Google Sheet Desa Kalikurmo
+          </h3>
+          <div className="flex items-center gap-2 bg-slate-100 px-3 py-1 rounded-lg text-xs font-semibold">
+            <Cloud className="w-4 h-4 text-emerald-600" />
+            <span>
+              Status:{' '}
+              <strong className="text-emerald-700">
+                {syncStatus === 'SYNCING'
+                  ? 'Sedang Sinkronisasi...'
+                  : syncStatus === 'SYNCED'
+                  ? `Tersinkron (${lastSyncedAt})`
+                  : syncStatus === 'ERROR'
+                  ? 'Periksa URL Web App'
+                  : 'Tersimpan di Browser (Siap Sinkron)'}
+              </strong>
+            </span>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-end">
           <div className="lg:col-span-2">
             <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -5444,7 +5683,7 @@ function GoogleSheetIntegrationModule({
               onClick={onPushNow}
               className="flex-1 inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition"
             >
-              <RefreshCw className="w-3.5 h-3.5" /> Simpan ke Sheet Sekarang
+              <RefreshCw className="w-3.5 h-3.5" /> Simpan ke Sheet
             </button>
             <button
               type="button"
@@ -5456,7 +5695,7 @@ function GoogleSheetIntegrationModule({
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
           <label className="inline-flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
             <input
               type="checkbox"
@@ -5464,40 +5703,282 @@ function GoogleSheetIntegrationModule({
               onChange={(e) => setAutoSyncSheet(e.target.checked)}
               className="rounded text-emerald-600 focus:ring-emerald-500"
             />
-            Aktifkan Simpan Otomatis Real-Time ke Google Sheet setiap ada transaksi / perubahan data
+            Aktifkan Simpan Otomatis Real-Time ke Google Sheet & LocalStorage Browser
           </label>
-          <span className="text-slate-400">
-            Sinkronisasi Terakhir: <strong>{lastSyncedAt}</strong>
-          </span>
+          <button
+            type="button"
+            onClick={onExportJson}
+            className="inline-flex items-center gap-1.5 text-emerald-700 hover:underline font-bold"
+          >
+            <Download className="w-3.5 h-3.5" /> Unduh Backup Database (.JSON)
+          </button>
         </div>
       </div>
 
-      {/* Kode.gs Lengkap Siap Pakai */}
-      <div className="bg-slate-900 text-white rounded-2xl border border-slate-800 shadow-lg overflow-hidden">
-        <div className="px-6 py-4 bg-slate-950 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 block">
-              2. File Backend Google Apps Script
-            </span>
-            <h3 className="font-bold text-base text-white">
-              Kode.gs — Siap Tempel di Google Sheet (Ekstensi → Apps Script)
-            </h3>
+      {/* SUB-TAB 1: PANDUAN & GENERATOR FILE HOSTING GITHUB PAGES */}
+      {subTab === 'GITHUB_HOSTING' && (
+        <div className="space-y-6">
+          {/* Langkah-Langkah Mudah Hosting di GitHub Pages */}
+          <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-6 rounded-2xl shadow-lg space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-700 pb-4">
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  Siap Online Gratis 24 Jam
+                </span>
+                <h3 className="text-lg font-extrabold mt-1">
+                  Cara Hosting Aplikasi SIMOSD Desa Kalikurmo di GitHub Pages
+                </h3>
+                <p className="text-xs text-slate-300 mt-0.5">
+                  Aplikasi ini sudah dilengkapi <strong>GitHub Actions Auto-Deploy</strong> &{' '}
+                  <strong>Base Path Relatif (<code>./</code>)</strong> sehingga langsung berjalan
+                  mulus di <code>https://username.github.io/nama-repo/</code>.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    downloadTextFile('package.json', GITHUB_PACKAGE_JSON_CODE);
+                    downloadTextFile('vite.config.js', GITHUB_VITE_CONFIG_CODE);
+                    downloadTextFile('index.html', GITHUB_INDEX_HTML_CODE);
+                    downloadTextFile('deploy.yml', GITHUB_WORKFLOW_YML_CODE);
+                    onCopyCode('4 File Konfigurasi GitHub Pages berhasil diunduh!');
+                  }}
+                  className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold px-4 py-2.5 rounded-xl text-xs shadow transition"
+                >
+                  <Download className="w-4 h-4" /> Unduh Paket Konfigurasi GitHub
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+              <div className="bg-white/5 border border-white/10 p-4 rounded-xl space-y-1.5">
+                <span className="inline-block px-2 py-0.5 rounded bg-emerald-600 text-white font-bold text-[10px]">
+                  LANGKAH 1
+                </span>
+                <h4 className="font-bold text-white text-sm">Pasang Kode.gs di Sheet</h4>
+                <p className="text-slate-300 leading-relaxed">
+                  Salin <strong>Kode.gs</strong> di tab sebelah ke Google Sheet Desa Kalikurmo,
+                  klik <strong>Deploy → Web App</strong> (Akses: <em>Siapa Saja</em>), lalu salin
+                  URL Web App-nya.
+                </p>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 p-4 rounded-xl space-y-1.5">
+                <span className="inline-block px-2 py-0.5 rounded bg-emerald-600 text-white font-bold text-[10px]">
+                  LANGKAH 2
+                </span>
+                <h4 className="font-bold text-white text-sm">Isi URL di App.jsx</h4>
+                <p className="text-slate-300 leading-relaxed">
+                  Tempel URL Web App Anda pada baris{' '}
+                  <code className="text-emerald-300">DEFAULT_GOOGLE_SHEET_WEB_APP_URL</code> di
+                  bagian atas file <code>src/App.jsx</code> agar seluruh HP warga langsung
+                  terhubung otomatis.
+                </p>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 p-4 rounded-xl space-y-1.5">
+                <span className="inline-block px-2 py-0.5 rounded bg-emerald-600 text-white font-bold text-[10px]">
+                  LANGKAH 3
+                </span>
+                <h4 className="font-bold text-white text-sm">Upload ke Repository GitHub</h4>
+                <p className="text-slate-300 leading-relaxed">
+                  Buat repository baru di GitHub (misal: <code>simosd-kalikurmo</code>), lalu
+                  masukkan file <code>package.json</code>, <code>vite.config.js</code>,{' '}
+                  <code>index.html</code>, <code>src/main.jsx</code>, dan <code>src/App.jsx</code>.
+                </p>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 p-4 rounded-xl space-y-1.5">
+                <span className="inline-block px-2 py-0.5 rounded bg-emerald-600 text-white font-bold text-[10px]">
+                  LANGKAH 4
+                </span>
+                <h4 className="font-bold text-white text-sm">Aktifkan GitHub Pages</h4>
+                <p className="text-slate-300 leading-relaxed">
+                  Buka menu <strong>Settings → Pages</strong> di GitHub, pada bagian{' '}
+                  <strong>Source</strong> pilih <strong>GitHub Actions</strong>. Tambahkan file{' '}
+                  <code>.github/workflows/deploy.yml</code> dan website langsung online!
+                </p>
+              </div>
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={handleCopyKodeGs}
-            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition"
-          >
-            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-            {copied ? 'Kode.gs Berhasil Disalin!' : 'Salin Seluruh Kode.gs'}
-          </button>
+
+          {/* Kumpulan File Siap Salin untuk Repository GitHub */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* File 1: package.json */}
+            <div className="bg-slate-900 text-white rounded-2xl border border-slate-800 overflow-hidden">
+              <div className="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold text-emerald-400 uppercase block">
+                    Root Repository
+                  </span>
+                  <h4 className="font-mono font-bold text-sm">package.json</h4>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    copyTextToClipboard(
+                      GITHUB_PACKAGE_JSON_CODE,
+                      'PKG',
+                      'File package.json berhasil disalin!'
+                    )
+                  }
+                  className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg"
+                >
+                  {copiedKey === 'PKG' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedKey === 'PKG' ? 'Tersalin' : 'Salin package.json'}
+                </button>
+              </div>
+              <pre className="p-4 text-xs font-mono text-emerald-300 overflow-x-auto">
+                {GITHUB_PACKAGE_JSON_CODE}
+              </pre>
+            </div>
+
+            {/* File 2: vite.config.js */}
+            <div className="bg-slate-900 text-white rounded-2xl border border-slate-800 overflow-hidden flex flex-col justify-between">
+              <div>
+                <div className="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold text-emerald-400 uppercase block">
+                      Root Repository (Agar Path GitHub Pages Tidak Blank)
+                    </span>
+                    <h4 className="font-mono font-bold text-sm">vite.config.js & src/main.jsx</h4>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        copyTextToClipboard(
+                          GITHUB_VITE_CONFIG_CODE,
+                          'VITE',
+                          'File vite.config.js berhasil disalin!'
+                        )
+                      }
+                      className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg"
+                    >
+                      {copiedKey === 'VITE' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      vite.config.js
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        copyTextToClipboard(
+                          GITHUB_MAIN_JSX_CODE,
+                          'MAIN',
+                          'File src/main.jsx berhasil disalin!'
+                        )
+                      }
+                      className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg"
+                    >
+                      {copiedKey === 'MAIN' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      src/main.jsx
+                    </button>
+                  </div>
+                </div>
+                <pre className="p-4 text-xs font-mono text-emerald-300 overflow-x-auto border-b border-slate-800">
+                  {GITHUB_VITE_CONFIG_CODE}
+                </pre>
+                <pre className="p-4 text-xs font-mono text-blue-300 overflow-x-auto">
+                  {`// File: src/main.jsx\n${GITHUB_MAIN_JSX_CODE}`}
+                </pre>
+              </div>
+            </div>
+
+            {/* File 3: index.html */}
+            <div className="bg-slate-900 text-white rounded-2xl border border-slate-800 overflow-hidden">
+              <div className="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold text-emerald-400 uppercase block">
+                    Root Repository
+                  </span>
+                  <h4 className="font-mono font-bold text-sm">index.html</h4>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    copyTextToClipboard(
+                      GITHUB_INDEX_HTML_CODE,
+                      'HTML',
+                      'File index.html berhasil disalin!'
+                    )
+                  }
+                  className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg"
+                >
+                  {copiedKey === 'HTML' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedKey === 'HTML' ? 'Tersalin' : 'Salin index.html'}
+                </button>
+              </div>
+              <pre className="p-4 text-xs font-mono text-emerald-300 overflow-x-auto">
+                {GITHUB_INDEX_HTML_CODE}
+              </pre>
+            </div>
+
+            {/* File 4: .github/workflows/deploy.yml */}
+            <div className="bg-slate-900 text-white rounded-2xl border border-slate-800 overflow-hidden">
+              <div className="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold text-emerald-400 uppercase block">
+                    Otomatis Build & Tayang Tanpa Terminal
+                  </span>
+                  <h4 className="font-mono font-bold text-sm">.github/workflows/deploy.yml</h4>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    copyTextToClipboard(
+                      GITHUB_WORKFLOW_YML_CODE,
+                      'YML',
+                      'Workflow GitHub Actions deploy.yml berhasil disalin!'
+                    )
+                  }
+                  className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg"
+                >
+                  {copiedKey === 'YML' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedKey === 'YML' ? 'Tersalin' : 'Salin deploy.yml'}
+                </button>
+              </div>
+              <pre className="p-4 text-xs font-mono text-emerald-300 overflow-x-auto max-h-[260px]">
+                {GITHUB_WORKFLOW_YML_CODE}
+              </pre>
+            </div>
+          </div>
         </div>
-        <div className="p-5 overflow-x-auto max-h-[460px]">
-          <pre className="text-xs font-mono text-emerald-300 leading-relaxed">
-            {GOOGLE_APPS_SCRIPT_CODE}
-          </pre>
+      )}
+
+      {/* SUB-TAB 2: KODE.GS LENGKAP SIAP PAKAI */}
+      {subTab === 'GOOGLE_SHEET' && (
+        <div className="bg-slate-900 text-white rounded-2xl border border-slate-800 shadow-lg overflow-hidden">
+          <div className="px-6 py-4 bg-slate-950 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 block">
+                File Backend Google Apps Script
+              </span>
+              <h3 className="font-bold text-base text-white">
+                Kode.gs — Siap Tempel di Google Sheet (Ekstensi → Apps Script)
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                copyTextToClipboard(
+                  GOOGLE_APPS_SCRIPT_CODE,
+                  'KODE_GS',
+                  'Kode.gs berhasil disalin! Silakan tempel di Google Apps Script.'
+                )
+              }
+              className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition"
+            >
+              {copiedKey === 'KODE_GS' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              {copiedKey === 'KODE_GS' ? 'Kode.gs Berhasil Disalin!' : 'Salin Seluruh Kode.gs'}
+            </button>
+          </div>
+          <div className="p-5 overflow-x-auto max-h-[460px]">
+            <pre className="text-xs font-mono text-emerald-300 leading-relaxed">
+              {GOOGLE_APPS_SCRIPT_CODE}
+            </pre>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
