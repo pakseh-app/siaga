@@ -243,7 +243,7 @@ const INITIAL_TARIFF_HISTORY = [
   },
 ];
 
-const INITIAL_VILLAGE_ OFFICIALS = {
+const INITIAL_VILLAGE_OFFICIALS = {
   kades: {
     nama: 'H. Muhammad Yusuf, S.Sos.',
     jabatan: 'Kepala Desa Kalikurmo',
