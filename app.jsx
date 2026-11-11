@@ -5,20 +5,26 @@ import {
   ShieldCheck, Eye, Lock, Unlock, Calendar, TrendingUp, ArrowUpRight,
   ArrowDownRight, Edit3, RotateCcw, Building2, UserCheck, CheckSquare,
   BarChart3, PieChart, Receipt, UserPlus, Phone, MapPin, Navigation,
-  Award, Camera, KeyRound, Database, Copy, RefreshCw, Check, Cloud
+  Award, Camera, KeyRound, Database, Copy, RefreshCw, Check, Cloud,
+  Sun, Moon
 } from 'lucide-react';
 
 // Daftar Pilihan RT dan RW 01 s/d 15
 const RT_RW_LIST = Array.from({ length: 15 }, (_, i) => String(i + 1).padStart(2, '0'));
 
-// Kunci penyimpanan lokal & URL Google Sheet Default
-const STORAGE_KEY = 'SIMOSD_DESA_KALIKURMO_V3';
+// ============================================================================
+// TEMPAT TEMPEL LINK GOOGLE APPS SCRIPT (BARIS 16):
+// Tempel link https://script.google.com/macros/s/.../exec di antara tanda kutip di bawah ini
+// ============================================================================
 const DEFAULT_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyCxdTF-88mw3GVkKwXiiDecmz07ZgUcckd8TbzMGSpfSNPYNzthUDIyfU5IjpVutG2/exec';
 
-// Kode Google Apps Script (Kode.gs) bebas konflik karakter
+const STORAGE_KEY = 'SIMOSD_DESA_KALIKURMO_MINGGUAN_V1';
+const THEME_KEY = 'SIMOSD_THEME_MODE';
+
+// Kode Google Apps Script (Kode.gs) untuk Sistem Iuran Mingguan
 const KODE_GS_SCRIPT = [
   '// ================================================================',
-  '// KODE.GS - DATABASE REALTIME MOBIL SIAGA DESA KALIKURMO',
+  '// KODE.GS - DATABASE REALTIME MOBIL SIAGA DESA KALIKURMO (MINGGUAN)',
   '// ================================================================',
   '// CARA PASANG:',
   '// 1. Buat Google Sheet baru di Google Drive Anda.',
@@ -27,7 +33,8 @@ const KODE_GS_SCRIPT = [
   '// 4. Klik Simpan, lalu klik Terapkan (Deploy) -> Deployment baru.',
   '// 5. Pilih jenis: Aplikasi Web (Web App).',
   '// 6. Jalankan sebagai: Saya (Me) | Akses: Siapa saja (Anyone).',
-  '// 7. Salin URL Aplikasi Web lalu tempel di menu Database aplikasi.',
+  '// 7. Salin URL Aplikasi Web lalu tempel di menu Google Sheet aplikasi',
+  '//    atau di variabel DEFAULT_SHEET_URL baris 16 pada file app.jsx.',
   '',
   'var SHEET_NAMES = {',
   '  STATE: "Database_JSON",',
@@ -89,9 +96,9 @@ const KODE_GS_SCRIPT = [
   '    if (Array.isArray(body.transactions)) {',
   '      var sTrx = ss.getSheetByName(SHEET_NAMES.TRANSAKSI);',
   '      sTrx.clear();',
-  '      var rowsT = [["No Trx", "Tanggal", "Nama Warga", "Dusun", "RT", "RW", "Mulai", "Lunas Sampai", "Jml Hari", "Tarif/Hari", "Nominal", "Paket", "Admin", "Status", "Keterangan"]];',
+  '      var rowsT = [["No Trx", "Tanggal", "Nama Warga", "Dusun", "RT", "RW", "Mulai", "Lunas Sampai", "Jml Minggu", "Tarif/Minggu", "Nominal", "Paket", "Admin", "Status", "Keterangan"]];',
   '      body.transactions.forEach(function(t) {',
-  '        rowsT.push([t.id, t.tanggalTransaksi, t.residentName, t.dusun, "\'" + t.rt, "\'" + (t.rw || "01"), t.periodeMulai, t.periodeAkhir, t.jumlahHari, t.tarifPerHari, t.nominal, t.paketLabel, t.adminName, t.status, t.keterangan]);',
+  '        rowsT.push([t.id, t.tanggalTransaksi, t.residentName, t.dusun, "\'" + t.rt, "\'" + (t.rw || "01"), t.periodeMulai, t.periodeAkhir, t.jumlahMinggu, t.tarifPerMinggu, t.nominal, t.paketLabel, t.adminName, t.status, t.keterangan]);',
   '      });',
   '      sTrx.getRange(1, 1, rowsT.length, rowsT[0].length).setValues(rowsT);',
   '    }',
@@ -119,13 +126,13 @@ const KODE_GS_SCRIPT = [
   '}'
 ].join('\n');
 
-// Data Awal Tarif Iuran
+// Data Awal Tarif Iuran Mingguan
 const INITIAL_RATES = [
   {
     id: 'RATE-001',
-    nominal: 2000,
+    nominal: 5000,
     effectiveDate: '2026-01-01',
-    keterangan: 'Tarif awal iuran Mobil Siaga Desa Kalikurmo hasil Musdes Tahun 2026',
+    keterangan: 'Tarif awal iuran mingguan Mobil Siaga Desa Kalikurmo hasil Musdes Tahun 2026',
     changedBy: 'Admin Budi (Bendahara Desa)',
     createdAt: '2026-01-01 08:00:00'
   }
@@ -187,7 +194,7 @@ const INITIAL_RESIDENTS = [
   { id: 'WRG-008', nama: 'Joko Susilo', dusun: 'Dusun Kalikurmo Lor', rt: '03', rw: '02', noKK: '3321010101260008', noHP: '081234567808', terdaftarSejak: '2026-01-01' }
 ];
 
-// Data Awal Transaksi Iuran
+// Data Awal Transaksi Iuran Mingguan
 const INITIAL_TRANSACTIONS = [
   {
     id: 'TRX-2026-0001',
@@ -197,14 +204,14 @@ const INITIAL_TRANSACTIONS = [
     rt: '01',
     rw: '01',
     tanggalTransaksi: '2026-01-01',
-    nominal: 62000,
-    tarifPerHari: 2000,
+    nominal: 20000,
+    tarifPerMinggu: 5000,
     periodeMulai: '2026-01-01',
-    periodeAkhir: '2026-01-31',
-    jumlahHari: 31,
-    paketLabel: 'Lunas 1 Bulan',
+    periodeAkhir: '2026-01-28',
+    jumlahMinggu: 4,
+    paketLabel: 'Lunas 1 Bulan (4 Minggu)',
     adminName: 'Admin Budi',
-    keterangan: 'Pembayaran iuran bulan Januari 2026',
+    keterangan: 'Pembayaran iuran 4 minggu bulan Januari 2026',
     status: 'VALID'
   },
   {
@@ -215,14 +222,14 @@ const INITIAL_TRANSACTIONS = [
     rt: '01',
     rw: '01',
     tanggalTransaksi: '2026-02-01',
-    nominal: 118000,
-    tarifPerHari: 2000,
-    periodeMulai: '2026-02-01',
-    periodeAkhir: '2026-03-31',
-    jumlahHari: 59,
-    paketLabel: 'Lunas 2 Bulan',
+    nominal: 40000,
+    tarifPerMinggu: 5000,
+    periodeMulai: '2026-01-29',
+    periodeAkhir: '2026-03-25',
+    jumlahMinggu: 8,
+    paketLabel: 'Lunas 2 Bulan (8 Minggu)',
     adminName: 'Admin Budi',
-    keterangan: 'Pelunasan Februari & Maret 2026',
+    keterangan: 'Pelunasan 8 minggu (Februari - Maret 2026)',
     status: 'VALID'
   },
   {
@@ -232,15 +239,15 @@ const INITIAL_TRANSACTIONS = [
     dusun: 'Dusun Krajan',
     rt: '01',
     rw: '01',
-    tanggalTransaksi: '2026-04-01',
-    nominal: 730000,
-    tarifPerHari: 2000,
-    periodeMulai: '2026-04-01',
-    periodeAkhir: '2027-03-31',
-    jumlahHari: 365,
-    paketLabel: 'Lunas 1 Tahun',
+    tanggalTransaksi: '2026-03-26',
+    nominal: 260000,
+    tarifPerMinggu: 5000,
+    periodeMulai: '2026-03-26',
+    periodeAkhir: '2027-03-24',
+    jumlahMinggu: 52,
+    paketLabel: 'Lunas 1 Tahun (52 Minggu)',
     adminName: 'Admin Budi',
-    keterangan: 'Pelunasan 1 tahun penuh di muka',
+    keterangan: 'Pelunasan 1 tahun penuh (52 minggu) di muka',
     status: 'VALID'
   },
   {
@@ -251,14 +258,14 @@ const INITIAL_TRANSACTIONS = [
     rt: '02',
     rw: '01',
     tanggalTransaksi: '2026-11-01',
-    nominal: 60000,
-    tarifPerHari: 2000,
+    nominal: 25000,
+    tarifPerMinggu: 5000,
     periodeMulai: '2026-11-01',
-    periodeAkhir: '2026-11-30',
-    jumlahHari: 30,
-    paketLabel: 'Lunas 1 Bulan',
+    periodeAkhir: '2026-12-05',
+    jumlahMinggu: 5,
+    paketLabel: 'Lunas 1 Bulan (5 Minggu)',
     adminName: 'Admin Siti',
-    keterangan: 'Lunas bulan November 2026',
+    keterangan: 'Lunas penuh bulan November 2026',
     status: 'VALID'
   },
   {
@@ -269,14 +276,14 @@ const INITIAL_TRANSACTIONS = [
     rt: '01',
     rw: '02',
     tanggalTransaksi: '2026-11-05',
-    nominal: 30000,
-    tarifPerHari: 2000,
+    nominal: 10000,
+    tarifPerMinggu: 5000,
     periodeMulai: '2026-11-01',
-    periodeAkhir: '2026-11-15',
-    jumlahHari: 15,
-    paketLabel: 'Pilih Periode Sendiri (15 Hari)',
+    periodeAkhir: '2026-11-14',
+    jumlahMinggu: 2,
+    paketLabel: 'Bayar 2 Minggu',
     adminName: 'Admin Budi',
-    keterangan: 'Bayar sebagian (15 hari pertama November)',
+    keterangan: 'Bayar sebagian (2 minggu pertama November)',
     status: 'VALID'
   },
   {
@@ -287,14 +294,14 @@ const INITIAL_TRANSACTIONS = [
     rt: '04',
     rw: '03',
     tanggalTransaksi: '2026-10-25',
-    nominal: 184000,
-    tarifPerHari: 2000,
+    nominal: 60000,
+    tarifPerMinggu: 5000,
     periodeMulai: '2026-11-01',
-    periodeAkhir: '2027-01-31',
-    jumlahHari: 92,
-    paketLabel: 'Lunas 3 Bulan',
+    periodeAkhir: '2027-01-23',
+    jumlahMinggu: 12,
+    paketLabel: 'Lunas 3 Bulan (12 Minggu)',
     adminName: 'Admin Siti',
-    keterangan: 'Pelunasan di muka 3 bulan (Nov 2026 - Jan 2027)',
+    keterangan: 'Pelunasan di muka 12 minggu (Nov 2026 - Jan 2027)',
     status: 'VALID'
   },
   {
@@ -305,14 +312,14 @@ const INITIAL_TRANSACTIONS = [
     rt: '01',
     rw: '01',
     tanggalTransaksi: '2026-09-01',
-    nominal: 60000,
-    tarifPerHari: 2000,
+    nominal: 20000,
+    tarifPerMinggu: 5000,
     periodeMulai: '2026-09-01',
-    periodeAkhir: '2026-09-30',
-    jumlahHari: 30,
-    paketLabel: 'Lunas 1 Bulan',
+    periodeAkhir: '2026-09-28',
+    jumlahMinggu: 4,
+    paketLabel: 'Lunas 1 Bulan (4 Minggu)',
     adminName: 'Admin Budi',
-    keterangan: 'Pembayaran bulan September 2026',
+    keterangan: 'Pembayaran 4 minggu bulan September 2026',
     status: 'VALID'
   }
 ];
@@ -359,20 +366,20 @@ const INITIAL_TRIPS = [
 
 // Data Awal Buku Kas Mobil Siaga
 const INITIAL_CASH = [
-  { id: 'KAS-0001', tanggal: '2026-01-01', tipe: 'MASUK', kategori: 'IURAN_WARGA', refId: 'TRX-2026-0001', deskripsi: 'Iuran Mobil Siaga - Ahmad Sulaiman (31 hari)', nominal: 62000, admin: 'Admin Budi' },
-  { id: 'KAS-0002', tanggal: '2026-02-01', tipe: 'MASUK', kategori: 'IURAN_WARGA', refId: 'TRX-2026-0002', deskripsi: 'Iuran Mobil Siaga - Ahmad Sulaiman (59 hari)', nominal: 118000, admin: 'Admin Budi' },
-  { id: 'KAS-0003', tanggal: '2026-04-01', tipe: 'MASUK', kategori: 'IURAN_WARGA', refId: 'TRX-2026-0003', deskripsi: 'Iuran Mobil Siaga - Ahmad Sulaiman (365 hari)', nominal: 730000, admin: 'Admin Budi' },
-  { id: 'KAS-0004', tanggal: '2026-09-01', tipe: 'MASUK', kategori: 'IURAN_WARGA', refId: 'TRX-2026-0007', deskripsi: 'Iuran Mobil Siaga - Rina Marlina (30 hari)', nominal: 60000, admin: 'Admin Budi' },
+  { id: 'KAS-0001', tanggal: '2026-01-01', tipe: 'MASUK', kategori: 'IURAN_WARGA', refId: 'TRX-2026-0001', deskripsi: 'Iuran Mobil Siaga - Ahmad Sulaiman (4 minggu)', nominal: 20000, admin: 'Admin Budi' },
+  { id: 'KAS-0002', tanggal: '2026-02-01', tipe: 'MASUK', kategori: 'IURAN_WARGA', refId: 'TRX-2026-0002', deskripsi: 'Iuran Mobil Siaga - Ahmad Sulaiman (8 minggu)', nominal: 40000, admin: 'Admin Budi' },
+  { id: 'KAS-0003', tanggal: '2026-03-26', tipe: 'MASUK', kategori: 'IURAN_WARGA', refId: 'TRX-2026-0003', deskripsi: 'Iuran Mobil Siaga - Ahmad Sulaiman (52 minggu / 1 Tahun)', nominal: 260000, admin: 'Admin Budi' },
+  { id: 'KAS-0004', tanggal: '2026-09-01', tipe: 'MASUK', kategori: 'IURAN_WARGA', refId: 'TRX-2026-0007', deskripsi: 'Iuran Mobil Siaga - Rina Marlina (4 minggu)', nominal: 20000, admin: 'Admin Budi' },
   { id: 'KAS-0005', tanggal: '2026-10-14', tipe: 'KELUAR', kategori: 'ANTAR_WARGA', refId: 'TRP-2026-001', deskripsi: 'Operasional Antar Warga: Siti Aminah ke RSUD Kabupaten (Sopir: Slamet Riyadi)', nominal: 150000, admin: 'Admin Budi' },
-  { id: 'KAS-0006', tanggal: '2026-10-25', tipe: 'MASUK', kategori: 'IURAN_WARGA', refId: 'TRX-2026-0006', deskripsi: 'Iuran Mobil Siaga - Dewi Sartika (92 hari)', nominal: 184000, admin: 'Admin Siti' },
-  { id: 'KAS-0007', tanggal: '2026-11-01', tipe: 'MASUK', kategori: 'IURAN_WARGA', refId: 'TRX-2026-0004', deskripsi: 'Iuran Mobil Siaga - Budi Santoso (30 hari)', nominal: 60000, admin: 'Admin Siti' },
+  { id: 'KAS-0006', tanggal: '2026-10-25', tipe: 'MASUK', kategori: 'IURAN_WARGA', refId: 'TRX-2026-0006', deskripsi: 'Iuran Mobil Siaga - Dewi Sartika (12 minggu)', nominal: 60000, admin: 'Admin Siti' },
+  { id: 'KAS-0007', tanggal: '2026-11-01', tipe: 'MASUK', kategori: 'IURAN_WARGA', refId: 'TRX-2026-0004', deskripsi: 'Iuran Mobil Siaga - Budi Santoso (5 minggu)', nominal: 25000, admin: 'Admin Siti' },
   { id: 'KAS-0008', tanggal: '2026-11-03', tipe: 'KELUAR', kategori: 'ANTAR_WARGA', refId: 'TRP-2026-002', deskripsi: 'Operasional Antar Warga: Mulyono Hadi ke RS Islam (Sopir: Wahyu Setiawan)', nominal: 185000, admin: 'Admin Siti' },
   { id: 'KAS-0009', tanggal: '2026-11-03', tipe: 'MASUK', kategori: 'INFAQ_PERJALANAN', refId: 'TRP-2026-002', deskripsi: 'Infaq Sukarela Perjalanan Warga: Mulyono Hadi', nominal: 50000, admin: 'Admin Siti' },
-  { id: 'KAS-0010', tanggal: '2026-11-05', tipe: 'MASUK', kategori: 'IURAN_WARGA', refId: 'TRX-2026-0005', deskripsi: 'Iuran Mobil Siaga - Hendra Wijaya (15 hari)', nominal: 30000, admin: 'Admin Budi' }
+  { id: 'KAS-0010', tanggal: '2026-11-05', tipe: 'MASUK', kategori: 'IURAN_WARGA', refId: 'TRX-2026-0005', deskripsi: 'Iuran Mobil Siaga - Hendra Wijaya (2 minggu)', nominal: 10000, admin: 'Admin Budi' }
 ];
 
 const INITIAL_AUDIT = [
-  { id: 'AUD-001', timestamp: '2026-01-01 08:00:00', admin: 'Admin Budi', aksi: 'SET_TARIF_AWAL', detail: 'Menetapkan nominal iuran awal Rp2.000/hari mulai 01/01/2026' },
+  { id: 'AUD-001', timestamp: '2026-01-01 08:00:00', admin: 'Admin Budi', aksi: 'SET_TARIF_AWAL', detail: 'Menetapkan nominal iuran mingguan awal Rp5.000/minggu mulai 01/01/2026' },
   { id: 'AUD-002', timestamp: '2026-11-03 21:45:00', admin: 'Admin Siti', aksi: 'CATAT_ANTAR_WARGA', detail: 'Mencatat perjalanan antar warga Mulyono Hadi ke RS Islam (BBM Rp185.000, Infaq Rp50.000)' }
 ];
 
@@ -427,20 +434,6 @@ function diffDaysInclusive(startStr, endStr) {
   return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
 }
 
-function addCalendarMonthsInclusive(startStr, monthsCount) {
-  const s = parseYMD(startStr);
-  const target = new Date(s.getFullYear(), s.getMonth() + Number(monthsCount), s.getDate());
-  target.setDate(target.getDate() - 1);
-  return toYMD(target);
-}
-
-function addCalendarYearsInclusive(startStr, yearsCount) {
-  const s = parseYMD(startStr);
-  const target = new Date(s.getFullYear() + Number(yearsCount), s.getMonth(), s.getDate());
-  target.setDate(target.getDate() - 1);
-  return toYMD(target);
-}
-
 function getEndOfMonthYMD(dateStr) {
   const d = parseYMD(dateStr);
   const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0);
@@ -470,8 +463,8 @@ function getEffectiveRateOnDate(rates, dateStr) {
   return match ? match : sorted[sorted.length - 1];
 }
 
-// Perhitungan Lengkap Status Pelunasan & Hari Nunggak Warga
-function computeResidentStatus(resident, transactions, systemDate, currentTarif) {
+// Perhitungan Lengkap Status Pelunasan & Minggu Nunggak Warga
+function computeResidentStatus(resident, transactions, systemDate, currentTarifMingguan) {
   const validTrx = transactions
     .filter((t) => t.residentId === resident.id && t.status === 'VALID')
     .sort((a, b) => a.periodeMulai.localeCompare(b.periodeMulai));
@@ -479,6 +472,7 @@ function computeResidentStatus(resident, transactions, systemDate, currentTarif)
   if (validTrx.length === 0) {
     const startObligation = resident.terdaftarSejak || '2026-01-01';
     const overdueDays = startObligation <= systemDate ? diffDaysInclusive(startObligation, systemDate) : 0;
+    const overdueWeeks = overdueDays > 0 ? Math.ceil(overdueDays / 7) : 0;
     return {
       statusKey: 'BELUM',
       statusLabel: 'BELUM BAYAR',
@@ -488,12 +482,12 @@ function computeResidentStatus(resident, transactions, systemDate, currentTarif)
       mulaiPertama: '-',
       tanggalPembayaranTerakhir: '-',
       totalNominal: 0,
-      totalHari: 0,
-      hariNunggak: overdueDays,
-      nominalTunggakan: overdueDays * currentTarif,
-      keteranganTunggakan: overdueDays > 0 ? ('Belum Pernah Bayar (Nunggak ' + overdueDays + ' Hari)') : 'Belum Ada Pembayaran',
+      totalMinggu: 0,
+      mingguNunggak: overdueWeeks,
+      nominalTunggakan: overdueWeeks * currentTarifMingguan,
+      keteranganTunggakan: overdueWeeks > 0 ? ('Belum Pernah Bayar (Nunggak ' + overdueWeeks + ' Minggu)') : 'Belum Ada Pembayaran',
       riwayat: [],
-      hasAdvance30Days: false,
+      hasAdvance1Month: false,
       hasAdvance1Year: false,
       isLunasBulanIni: false,
       isLunasBulanDepan: false,
@@ -502,21 +496,22 @@ function computeResidentStatus(resident, transactions, systemDate, currentTarif)
   }
 
   let totalNominal = 0;
-  let totalHari = 0;
+  let totalMinggu = 0;
   let maxEndDate = validTrx[0].periodeAkhir;
   let minStartDate = validTrx[0].periodeMulai;
   let lastTransDate = validTrx[0].tanggalTransaksi;
-  let hasAdvance30Days = false;
+  let hasAdvance1Month = false;
   let hasAdvance1Year = false;
 
   validTrx.forEach((t) => {
+    const weeks = Number(t.jumlahMinggu) || Math.max(1, Math.round((Number(t.jumlahHari) || 7) / 7));
     totalNominal += Number(t.nominal) || 0;
-    totalHari += Number(t.jumlahHari) || 0;
+    totalMinggu += weeks;
     if (t.periodeAkhir > maxEndDate) maxEndDate = t.periodeAkhir;
     if (t.periodeMulai < minStartDate) minStartDate = t.periodeMulai;
     if (t.tanggalTransaksi > lastTransDate) lastTransDate = t.tanggalTransaksi;
-    if (t.jumlahHari >= 28 && t.jumlahHari <= 360) hasAdvance30Days = true;
-    if (t.jumlahHari >= 365) hasAdvance1Year = true;
+    if (weeks >= 4 && weeks < 52) hasAdvance1Month = true;
+    if (weeks >= 52) hasAdvance1Year = true;
   });
 
   const endOfCurrentMonth = getEndOfMonthYMD(systemDate);
@@ -527,12 +522,13 @@ function computeResidentStatus(resident, transactions, systemDate, currentTarif)
   const isLunasBulanDepan = maxEndDate >= endOfNextMonth;
   const isLewatMasa = maxEndDate < systemDate;
 
-  let hariNunggak = 0;
+  let mingguNunggak = 0;
   if (isLewatMasa) {
     const firstUnpaidDay = addDays(maxEndDate, 1);
-    hariNunggak = diffDaysInclusive(firstUnpaidDay, systemDate);
+    const overdueDays = diffDaysInclusive(firstUnpaidDay, systemDate);
+    mingguNunggak = Math.ceil(overdueDays / 7);
   }
-  const nominalTunggakan = hariNunggak * currentTarif;
+  const nominalTunggakan = mingguNunggak * currentTarifMingguan;
 
   if (isLewatMasa) {
     return {
@@ -544,12 +540,12 @@ function computeResidentStatus(resident, transactions, systemDate, currentTarif)
       mulaiPertama: minStartDate,
       tanggalPembayaranTerakhir: lastTransDate,
       totalNominal,
-      totalHari,
-      hariNunggak,
+      totalMinggu,
+      mingguNunggak,
       nominalTunggakan,
-      keteranganTunggakan: 'Nunggak ' + hariNunggak + ' Hari (Terakhir Lunas: ' + formatDateID(maxEndDate) + ')',
+      keteranganTunggakan: 'Nunggak ' + mingguNunggak + ' Minggu (Terakhir Lunas: ' + formatDateID(maxEndDate) + ')',
       riwayat: validTrx,
-      hasAdvance30Days,
+      hasAdvance1Month,
       hasAdvance1Year,
       isLunasBulanIni: false,
       isLunasBulanDepan: false,
@@ -559,6 +555,7 @@ function computeResidentStatus(resident, transactions, systemDate, currentTarif)
 
   if (maxEndDate >= startOfNextMonth) {
     const sisaHariKedepan = diffDaysInclusive(systemDate, maxEndDate);
+    const sisaMingguKedepan = Math.ceil(sisaHariKedepan / 7);
     return {
       statusKey: 'LUNAS_MENDATANG',
       statusLabel: 'LUNAS PERIODE MENDATANG',
@@ -568,12 +565,12 @@ function computeResidentStatus(resident, transactions, systemDate, currentTarif)
       mulaiPertama: minStartDate,
       tanggalPembayaranTerakhir: lastTransDate,
       totalNominal,
-      totalHari,
-      hariNunggak: 0,
+      totalMinggu,
+      mingguNunggak: 0,
       nominalTunggakan: 0,
-      keteranganTunggakan: 'Bebas Kewajiban ' + sisaHariKedepan + ' Hari ke Depan',
+      keteranganTunggakan: 'Bebas Kewajiban ' + sisaMingguKedepan + ' Minggu ke Depan',
       riwayat: validTrx,
-      hasAdvance30Days,
+      hasAdvance1Month,
       hasAdvance1Year,
       isLunasBulanIni: true,
       isLunasBulanDepan,
@@ -591,12 +588,12 @@ function computeResidentStatus(resident, transactions, systemDate, currentTarif)
       mulaiPertama: minStartDate,
       tanggalPembayaranTerakhir: lastTransDate,
       totalNominal,
-      totalHari,
-      hariNunggak: 0,
+      totalMinggu,
+      mingguNunggak: 0,
       nominalTunggakan: 0,
       keteranganTunggakan: 'Lunas Penuh Bulan Ini',
       riwayat: validTrx,
-      hasAdvance30Days,
+      hasAdvance1Month,
       hasAdvance1Year,
       isLunasBulanIni: true,
       isLunasBulanDepan: false,
@@ -613,12 +610,12 @@ function computeResidentStatus(resident, transactions, systemDate, currentTarif)
     mulaiPertama: minStartDate,
     tanggalPembayaranTerakhir: lastTransDate,
     totalNominal,
-    totalHari,
-    hariNunggak: 0,
+    totalMinggu,
+    mingguNunggak: 0,
     nominalTunggakan: 0,
     keteranganTunggakan: 'Baru Lunas s/d ' + formatDateID(maxEndDate) + ' (Belum Penuh 1 Bulan)',
     riwayat: validTrx,
-    hasAdvance30Days,
+    hasAdvance1Month,
     hasAdvance1Year,
     isLunasBulanIni: false,
     isLunasBulanDepan: false,
@@ -630,7 +627,6 @@ function computeResidentStatus(resident, transactions, systemDate, currentTarif)
 // KOMPONEN UTAMA APLIKASI SIMOSD DESA KALIKURMO
 // ============================================================================
 export default function App() {
-  // Load initial state dari localStorage jika tersedia
   const savedState = useMemo(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -640,7 +636,22 @@ export default function App() {
     }
   }, []);
 
-  // Tampilan pertama kali dibuka langsung ke Halaman Publik (Beranda Transparansi)
+  // State Mode Malam / Mode Terang
+  const [themeMode, setThemeMode] = useState(() => {
+    try {
+      return localStorage.getItem(THEME_KEY) || 'dark';
+    } catch (e) {
+      return 'dark';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(THEME_KEY, themeMode);
+    } catch (e) {}
+  }, [themeMode]);
+
+  // Tampilan pertama kali dibuka langsung ke Halaman Publik
   const [viewMode, setViewMode] = useState('PUBLIC');
   const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
@@ -690,7 +701,7 @@ export default function App() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  // Simpan otomatis ke localStorage setiap ada perubahan data
+  // Simpan otomatis ke localStorage
   useEffect(() => {
     try {
       const payload = {
@@ -708,7 +719,6 @@ export default function App() {
     }
   }, [rates, residents, transactions, cashLedger, auditLogs, villageOfficials, tripLogs]);
 
-  // Simpan URL Google Sheet
   useEffect(() => {
     try {
       localStorage.setItem('SIMOSD_SHEET_URL', sheetUrl);
@@ -745,7 +755,7 @@ export default function App() {
 
   const fetchFromGoogleSheet = async (silent = false) => {
     if (!sheetUrl || !sheetUrl.startsWith('https://script.google.com')) {
-      if (!silent) showToast('Masukkan URL Web App Google Sheet terlebih dahulu.', 'error');
+      if (!silent) showToast('Masukkan URL Web App Google Sheet terlebih dahulu di menu Google Sheet.', 'error');
       return;
     }
     setSyncStatus('SYNCING');
@@ -763,7 +773,7 @@ export default function App() {
         if (Array.isArray(d.tripLogs)) setTripLogs(d.tripLogs);
         setLastSyncTime(json.updatedAt || new Date().toLocaleTimeString('id-ID'));
         setSyncStatus('SUCCESS');
-        if (!silent) showToast('Data berhasil dimuat dari Google Sheet Desa Kalikurmo!');
+        if (!silent) showToast('Data berhasil disinkronkan dari Google Sheet Desa Kalikurmo!');
       } else {
         setSyncStatus('IDLE');
         if (!silent) showToast('Database Google Sheet masih kosong, silakan klik Simpan ke Sheet.', 'warning');
@@ -774,17 +784,16 @@ export default function App() {
     }
   };
 
-  // Auto-load dari Google Sheet saat pertama kali dibuka jika URL tersedia
   useEffect(() => {
     if (sheetUrl && sheetUrl.startsWith('https://script.google.com')) {
       fetchFromGoogleSheet(true);
     }
   }, []);
 
-  // Tarif Aktif saat ini
+  // Tarif Mingguan Aktif
   const activeRateObj = useMemo(() => getEffectiveRateOnDate(rates, systemDate), [rates, systemDate]);
 
-  // Daftar Dusun Dinamis (menggabungkan dusun default + dusun ketikan manual)
+  // Daftar Dusun Dinamis
   const dusunOptions = useMemo(() => {
     const setDusun = new Set(['Dusun Krajan', 'Dusun Kalikurmo Lor', 'Dusun Kalikurmo Kidul']);
     residents.forEach((r) => {
@@ -796,7 +805,7 @@ export default function App() {
     return Array.from(setDusun);
   }, [residents, villageOfficials]);
 
-  // Data Warga + Perhitungan Status & Tunggakan
+  // Data Warga + Perhitungan Status Mingguan
   const enrichedResidents = useMemo(() => {
     return residents.map((r) => ({
       ...r,
@@ -836,7 +845,7 @@ export default function App() {
     const bayarSebagian = enrichedResidents.filter((r) => r.computed.statusKey === 'SEBAGIAN').length;
     const lunasBulanIniCount = enrichedResidents.filter((r) => r.computed.isLunasBulanIni).length;
     const lunasBulanDepanCount = enrichedResidents.filter((r) => r.computed.isLunasBulanDepan).length;
-    const lunas1Bulan = enrichedResidents.filter((r) => r.computed.hasAdvance30Days).length;
+    const lunas1Bulan = enrichedResidents.filter((r) => r.computed.hasAdvance1Month).length;
     const lunas1Tahun = enrichedResidents.filter((r) => r.computed.hasAdvance1Year).length;
 
     const validTransactions = transactions.filter((t) => {
@@ -870,7 +879,7 @@ export default function App() {
       lunas1Tahun,
       totalPemasukanIuran,
       totalPembayaranDiMuka,
-      nominalHarianBerlaku: activeRateObj.nominal,
+      nominalMingguanBerlaku: activeRateObj.nominal,
       saldoKas: totalMasukKas - totalKeluarKas,
       totalMasukKas,
       totalKeluarKas,
@@ -918,11 +927,11 @@ export default function App() {
     showToast('Dashboard Admin telah dikunci kembali.', 'warning');
   };
 
-  // Handler Ubah Tarif Iuran
+  // Handler Ubah Tarif Iuran Mingguan
   const handleAddRate = ({ nominal, effectiveDate, keterangan }) => {
     const numNominal = Number(nominal);
-    if (!numNominal || numNominal < 100) {
-      showToast('Nominal iuran tidak valid (minimal Rp100).', 'error');
+    if (!numNominal || numNominal < 500) {
+      showToast('Nominal iuran mingguan tidak valid (minimal Rp500).', 'error');
       return;
     }
     if (!effectiveDate) {
@@ -933,19 +942,19 @@ export default function App() {
       id: 'RATE-' + String(rates.length + 1).padStart(3, '0'),
       nominal: numNominal,
       effectiveDate,
-      keterangan: keterangan || 'Penyesuaian tarif iuran harian Mobil Siaga Desa Kalikurmo',
+      keterangan: keterangan || 'Penyesuaian tarif iuran mingguan Mobil Siaga Desa Kalikurmo',
       changedBy: currentAdmin,
       createdAt: systemDate + ' ' + new Date().toTimeString().slice(0, 8)
     };
     const nextRates = [newRate, ...rates];
     setRates(nextRates);
-    addAuditLog('UBAH_NOMINAL_IURAN', 'Mengubah tarif iuran menjadi ' + formatRupiah(numNominal) + '/hari mulai ' + formatDateID(effectiveDate));
+    addAuditLog('UBAH_NOMINAL_IURAN', 'Mengubah tarif iuran mingguan menjadi ' + formatRupiah(numNominal) + '/minggu mulai ' + formatDateID(effectiveDate));
     syncToGoogleSheet({ rates: nextRates, residents, transactions, cashLedger, auditLogs, villageOfficials, tripLogs });
-    showToast('Tarif baru ' + formatRupiah(numNominal) + '/hari berhasil disimpan!');
+    showToast('Tarif baru ' + formatRupiah(numNominal) + '/minggu berhasil disimpan!');
   };
 
-  // Handler Simpan Pembayaran Iuran Warga
-  const handleSavePayment = ({ residentId, tanggalTransaksi, periodeMulai, periodeAkhir, jumlahHari, paketLabel, keterangan }) => {
+  // Handler Simpan Pembayaran Iuran Mingguan Warga
+  const handleSavePayment = ({ residentId, tanggalTransaksi, periodeMulai, periodeAkhir, jumlahMinggu, paketLabel, keterangan }) => {
     const resident = residents.find((r) => r.id === residentId);
     if (!resident) return;
 
@@ -965,8 +974,8 @@ export default function App() {
     }
 
     const rateAtTrx = getEffectiveRateOnDate(rates, tanggalTransaksi);
-    const tarifPerHari = rateAtTrx.nominal;
-    const nominal = Number(jumlahHari) * tarifPerHari;
+    const tarifPerMinggu = rateAtTrx.nominal;
+    const nominal = Number(jumlahMinggu) * tarifPerMinggu;
     const trxId = 'TRX-' + tanggalTransaksi.slice(0, 4) + '-' + String(transactions.length + 1).padStart(4, '0');
 
     const newTrx = {
@@ -978,13 +987,13 @@ export default function App() {
       rw: resident.rw || '01',
       tanggalTransaksi,
       nominal,
-      tarifPerHari,
+      tarifPerMinggu,
       periodeMulai,
       periodeAkhir,
-      jumlahHari: Number(jumlahHari),
+      jumlahMinggu: Number(jumlahMinggu),
       paketLabel,
       adminName: currentAdmin,
-      keterangan: keterangan || (paketLabel + ' (' + jumlahHari + ' hari)'),
+      keterangan: keterangan || (paketLabel + ' (' + jumlahMinggu + ' minggu)'),
       status: 'VALID'
     };
 
@@ -994,7 +1003,7 @@ export default function App() {
       tipe: 'MASUK',
       kategori: 'IURAN_WARGA',
       refId: trxId,
-      deskripsi: 'Iuran Mobil Siaga - ' + resident.nama + ' (' + jumlahHari + ' hari: ' + formatDateID(periodeMulai) + ' s/d ' + formatDateID(periodeAkhir) + ')',
+      deskripsi: 'Iuran Mobil Siaga - ' + resident.nama + ' (' + jumlahMinggu + ' minggu: ' + formatDateID(periodeMulai) + ' s/d ' + formatDateID(periodeAkhir) + ')',
       nominal,
       admin: currentAdmin
     };
@@ -1003,13 +1012,13 @@ export default function App() {
     const nextKas = [newKas, ...cashLedger];
     setTransactions(nextTrx);
     setCashLedger(nextKas);
-    addAuditLog('INPUT_PEMBAYARAN', 'Mencatat pembayaran ' + trxId + ' an. ' + resident.nama + ' sebesar ' + formatRupiah(nominal));
+    addAuditLog('INPUT_PEMBAYARAN', 'Mencatat pembayaran ' + trxId + ' an. ' + resident.nama + ' (' + jumlahMinggu + ' minggu) sebesar ' + formatRupiah(nominal));
     syncToGoogleSheet({ rates, residents, transactions: nextTrx, cashLedger: nextKas, auditLogs, villageOfficials, tripLogs });
     setPaymentModal({ open: false, residentId: null, presetType: '1_BULAN' });
-    showToast('Pembayaran ' + resident.nama + ' sebesar ' + formatRupiah(nominal) + ' berhasil disimpan & masuk Kas!');
+    showToast('Pembayaran ' + resident.nama + ' (' + jumlahMinggu + ' minggu) sebesar ' + formatRupiah(nominal) + ' berhasil disimpan!');
   };
 
-  // Handler Koreksi Transaksi dengan Audit
+  // Handler Koreksi Transaksi
   const handleCorrectTransaction = (trxId, alasanKoreksi) => {
     if (!alasanKoreksi || alasanKoreksi.trim().length < 5) {
       showToast('Alasan koreksi wajib diisi minimal 5 karakter untuk catatan audit.', 'error');
@@ -1157,7 +1166,27 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
+    <div className={(themeMode === 'light' ? 'theme-light ' : '') + 'min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white transition-colors duration-200'}>
+      {/* CSS Otomatis untuk Mode Terang (Light Mode) */}
+      {themeMode === 'light' && (
+        <style>{`
+          .theme-light.bg-slate-950, .theme-light .bg-slate-950 { background-color: #f8fafc !important; color: #0f172a !important; }
+          .theme-light .bg-slate-900, .theme-light .bg-slate-900\\/95, .theme-light .bg-slate-900\\/90 { background-color: #ffffff !important; color: #0f172a !important; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06); }
+          .theme-light .bg-slate-800, .theme-light .bg-slate-800\\/90, .theme-light .bg-slate-800\\/60, .theme-light .bg-slate-950\\/70 { background-color: #f1f5f9 !important; color: #1e293b !important; }
+          .theme-light .border-slate-800, .theme-light .border-slate-800\\/90, .theme-light .border-slate-800\\/80, .theme-light .border-slate-700, .theme-light .border-slate-700\\/80 { border-color: #cbd5e1 !important; }
+          .theme-light .divide-slate-800 > :not([hidden]) ~ :not([hidden]), .theme-light .divide-slate-800\\/70 > :not([hidden]) ~ :not([hidden]) { border-color: #e2e8f0 !important; }
+          .theme-light .text-white, .theme-light .text-slate-100 { color: #0f172a !important; }
+          .theme-light .text-slate-200, .theme-light .text-slate-300 { color: #334155 !important; }
+          .theme-light .text-slate-400, .theme-light .text-slate-500 { color: #64748b !important; }
+          .theme-light .text-emerald-400, .theme-light .text-emerald-300 { color: #047857 !important; }
+          .theme-light .text-sky-400, .theme-light .text-sky-300 { color: #0369a1 !important; }
+          .theme-light .text-amber-400, .theme-light .text-amber-300 { color: #b45309 !important; }
+          .theme-light .text-rose-400, .theme-light .text-rose-300 { color: #be123c !important; }
+          .theme-light .from-emerald-950\\/90 { background: linear-gradient(to right, #ecfdf5, #f0f9ff) !important; border-color: #6ee7b7 !important; }
+          .theme-light .bg-emerald-600 .text-white, .theme-light .bg-emerald-600, .theme-light .bg-sky-600, .theme-light .bg-amber-600, .theme-light .bg-rose-600 { color: #ffffff !important; }
+        `}</style>
+      )}
+
       {/* Notifikasi Toast */}
       {toast && (
         <div className="fixed bottom-5 right-5 z-50 max-w-md animate-bounce">
@@ -1194,16 +1223,35 @@ export default function App() {
               <div className="flex items-center gap-2">
                 <h1 className="text-lg font-bold tracking-tight text-white">SIMOSD — DESA KALIKURMO</h1>
                 <span className="text-[11px] font-semibold uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  Tarif Aktif: {formatRupiah(activeRateObj.nominal)}/hari
+                  Tarif Aktif: {formatRupiah(activeRateObj.nominal)} / minggu
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Sistem Informasi Manajemen Iuran & Operasional Mobil Siaga Desa Kalikurmo
+                Sistem Informasi Manajemen Iuran Mingguan & Operasional Mobil Siaga Desa Kalikurmo
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Tombol Mode Malam / Mode Terang */}
+            <button
+              onClick={() => setThemeMode((prev) => (prev === 'dark' ? 'light' : 'dark'))}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 transition-all"
+              title="Ganti Mode Tampilan Terang / Malam"
+            >
+              {themeMode === 'dark' ? (
+                <>
+                  <Sun className="w-4 h-4 text-amber-400" />
+                  <span>Mode Terang</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-4 h-4 text-indigo-600" />
+                  <span>Mode Malam</span>
+                </>
+              )}
+            </button>
+
             {/* Simulasi Tanggal Sistem */}
             <div className="flex items-center gap-2 bg-slate-800/90 border border-slate-700 rounded-lg px-3 py-1.5">
               <Calendar className="w-4 h-4 text-emerald-400" />
@@ -1223,10 +1271,10 @@ export default function App() {
               <button
                 onClick={() => fetchFromGoogleSheet(false)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-emerald-300"
-                title="Klik untuk muat ulang dari Google Sheet"
+                title="Klik untuk sinkronisasi ulang dari Google Sheet"
               >
                 <Cloud className="w-3.5 h-3.5" />
-                <span>{syncStatus === 'SYNCING' ? 'Sinkronisasi...' : 'Sheet Aktif'}</span>
+                <span>{syncStatus === 'SYNCING' ? 'Sinkronisasi...' : 'Sheet Terhubung'}</span>
               </button>
             )}
 
@@ -1282,8 +1330,8 @@ export default function App() {
                 { id: 'PROFIL', label: 'Profil Kades & Sopir', icon: Phone },
                 { id: 'KAS', label: 'Kas Mobil Siaga', icon: Wallet },
                 { id: 'RIWAYAT', label: 'Riwayat Pembayaran', icon: History },
-                { id: 'PENGATURAN', label: 'Pengaturan Iuran', icon: Settings },
-                { id: 'DATABASE', label: 'Google Sheet & Kode.gs', icon: Database }
+                { id: 'PENGATURAN', label: 'Pengaturan Iuran Mingguan', icon: Settings },
+                { id: 'DATABASE', label: 'Link Google Sheet & Kode.gs', icon: Database }
               ].map((item) => {
                 const Icon = item.icon;
                 const active = activeTab === item.id;
@@ -1543,7 +1591,7 @@ export default function App() {
         />
       )}
 
-      {/* Modal Input Pembayaran Iuran */}
+      {/* Modal Input Pembayaran Iuran Mingguan */}
       {paymentModal.open && (
         <PaymentFormModal
           resident={enrichedResidents.find((r) => r.id === paymentModal.residentId) || enrichedResidents[0]}
@@ -1592,7 +1640,7 @@ export default function App() {
                 WATERMARK RESMI: SISTEM INFORMASI MOBIL SIAGA DESA KALIKURMO
               </p>
               <p className="text-[11px] text-slate-400">
-                Transparansi Iuran Warga & Kas Operasional Armada Siaga Desa Kalikurmo
+                Transparansi Iuran Mingguan Warga & Kas Operasional Armada Siaga Desa Kalikurmo
               </p>
             </div>
           </div>
@@ -1658,7 +1706,6 @@ function PublicPortalView({
   setFilterStatus,
   searchQuery,
   setSearchQuery,
-  systemDate,
   villageOfficials,
   tripLogs
 }) {
@@ -1698,10 +1745,10 @@ function PublicPortalView({
               PORTAL TRANSPARANSI MASYARAKAT — DESA KALIKURMO
             </span>
             <h2 className="text-2xl font-extrabold text-white">
-              Laporan Publik Iuran & Layanan Mobil Siaga Desa Kalikurmo
+              Laporan Publik Iuran Mingguan & Layanan Mobil Siaga Desa Kalikurmo
             </h2>
             <p className="text-sm text-slate-300 max-w-2xl">
-              Masyarakat Desa Kalikurmo dapat memeriksa status pelunasan iuran, menghubungi Sopir Siaga 24 Jam, serta melihat riwayat pemakaian mobil dan kas secara terbuka. Data sensitif warga (No. KK & HP Pribadi) disembunyikan.
+              Masyarakat Desa Kalikurmo dapat memeriksa status pelunasan iuran mingguan, menghubungi Sopir Siaga 24 Jam, serta melihat riwayat pemakaian mobil dan kas secara terbuka.
             </p>
           </div>
 
@@ -1714,9 +1761,9 @@ function PublicPortalView({
               <span className="text-[11px] text-slate-400 block mt-0.5">Kas Aktif Siap Pakai</span>
             </div>
             <div className="bg-slate-900/90 border border-slate-700/80 rounded-xl p-3.5">
-              <span className="text-xs text-slate-400 block">Tarif Iuran Harian</span>
+              <span className="text-xs text-slate-400 block">Tarif Iuran Mingguan</span>
               <span className="text-lg font-extrabold text-sky-400">
-                {formatRupiah(activeRateObj.nominal)} / hari
+                {formatRupiah(activeRateObj.nominal)} / minggu
               </span>
               <span className="text-[11px] text-slate-400 block mt-0.5">Keputusan Musdes</span>
             </div>
@@ -1926,7 +1973,7 @@ function PublicPortalView({
                 <th className="py-3 px-4">RT / RW</th>
                 <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4">Terakhir Lunas Sampai</th>
-                <th className="py-3 px-4">Keterangan / Hari Nunggak</th>
+                <th className="py-3 px-4">Keterangan / Minggu Nunggak</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/70 text-xs">
@@ -1956,9 +2003,9 @@ function PublicPortalView({
                     {formatDateID(w.computed.lunasSampai)}
                   </td>
                   <td className="py-3 px-4">
-                    {w.computed.hariNunggak > 0 ? (
+                    {w.computed.mingguNunggak > 0 ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-rose-500/15 border border-rose-500/30 text-rose-300 font-bold text-[11px]">
-                        Nunggak {w.computed.hariNunggak} Hari ({formatRupiah(w.computed.nominalTunggakan)})
+                        Nunggak {w.computed.mingguNunggak} Minggu ({formatRupiah(w.computed.nominalTunggakan)})
                       </span>
                     ) : (
                       <span className="text-emerald-300 font-medium">{w.computed.keteranganTunggakan}</span>
@@ -1976,7 +2023,7 @@ function PublicPortalView({
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
           <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
             <Building2 className="w-4 h-4 text-emerald-400" />
-            Rekapitulasi Iuran Berdasarkan Dusun Desa Kalikurmo
+            Rekapitulasi Iuran Mingguan Berdasarkan Dusun Desa Kalikurmo
           </h3>
           <div className="space-y-3">
             {rekapDusun.map((d) => (
@@ -2034,7 +2081,7 @@ function PublicPortalView({
 }
 
 // ============================================================================
-// 2. DASHBOARD REKAPITULASI IURAN (ADMIN)
+// 2. DASHBOARD REKAPITULASI IURAN MINGGUAN (ADMIN)
 // ============================================================================
 function DashboardView({
   stats,
@@ -2046,7 +2093,6 @@ function DashboardView({
   setFilterRT,
   filterRW,
   setFilterRW,
-  filterStatus,
   setFilterStatus,
   filterYear,
   setFilterYear,
@@ -2062,15 +2108,14 @@ function DashboardView({
     { title: '1. Total Warga Terdaftar', value: stats.totalWarga + ' Warga', sub: 'Database Warga Kalikurmo', color: 'text-white' },
     { title: '2. Warga Sudah Lunas', value: stats.sudahLunas + ' Warga', sub: 'Hijau & Biru (Bebas Kewajiban)', color: 'text-emerald-400' },
     { title: '3. Warga Belum Lunas / Nunggak', value: stats.belumLunas + ' Warga', sub: 'Merah (Perlu Tindak Lanjut)', color: 'text-rose-400' },
-    { title: '4. Membayar Sebagian', value: stats.bayarSebagian + ' Warga', sub: 'Kuning (Belum Penuh 1 Bulan)', color: 'text-amber-400' },
-    { title: '5. Melunasi ≥ 1 Bulan', value: stats.lunas1Bulan + ' Warga', sub: 'Paket Bulanan / Kuartal', color: 'text-sky-400' },
-    { title: '6. Melunasi 1 Tahun Penuh', value: stats.lunas1Tahun + ' Warga', sub: 'Pelunasan 365 Hari', color: 'text-indigo-400' },
+    { title: '4. Membayar Sebagian', value: stats.bayarSebagian + ' Warga', sub: 'Kuning (1 - 3 Minggu)', color: 'text-amber-400' },
+    { title: '5. Melunasi ≥ 1 Bulan (4 Minggu)', value: stats.lunas1Bulan + ' Warga', sub: 'Paket Bulanan / Kuartal', color: 'text-sky-400' },
+    { title: '6. Melunasi 1 Tahun (52 Minggu)', value: stats.lunas1Tahun + ' Warga', sub: 'Pelunasan 52 Minggu Penuh', color: 'text-indigo-400' },
     { title: '7. Total Pemasukan Iuran', value: formatRupiah(stats.totalPemasukanIuran), sub: 'Sesuai Filter Aktif', color: 'text-emerald-400' },
     { title: '8. Total Pembayaran Di Muka', value: formatRupiah(stats.totalPembayaranDiMuka), sub: 'Periode Mendatang', color: 'text-sky-400' },
-    { title: '9. Nominal Iuran Berlaku', value: formatRupiah(stats.nominalHarianBerlaku) + '/hari', sub: 'Tarif Harian Aktif', color: 'text-amber-300' }
+    { title: '9. Nominal Iuran Mingguan', value: formatRupiah(stats.nominalMingguanBerlaku) + '/minggu', sub: 'Tarif Mingguan Aktif', color: 'text-amber-300' }
   ];
 
-  // Grafik Pemasukan Berdasarkan Dusun & RT
   const chartPerDusun = useMemo(() => {
     return dusunOptions.map((d) => {
       const total = stats.validTransactions
@@ -2084,7 +2129,6 @@ function DashboardView({
 
   return (
     <div className="space-y-6">
-      {/* Bar Filter Lengkap */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
@@ -2197,7 +2241,7 @@ function DashboardView({
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
           <h3 className="text-sm font-bold text-white flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-emerald-400" />
-            Grafik Pemasukan Iuran Berdasarkan Dusun
+            Grafik Pemasukan Iuran Mingguan Berdasarkan Dusun
           </h3>
           <div className="space-y-3">
             {chartPerDusun.map((item) => {
@@ -2221,7 +2265,7 @@ function DashboardView({
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
           <h3 className="text-sm font-bold text-white flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-rose-400" />
-            Daftar Warga Menunggak / Belum Lunas (Aksi Cepat)
+            Daftar Warga Menunggak Mingguan / Belum Lunas (Aksi Cepat)
           </h3>
           <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
             {enrichedResidents
@@ -2266,7 +2310,7 @@ function DashboardView({
 }
 
 // ============================================================================
-// 3. DATA IURAN WARGA & CHECKLIST OTOMATIS
+// 3. DATA IURAN WARGA & CHECKLIST OTOMATIS (MINGGUAN)
 // ============================================================================
 function DataIuranWargaView({
   residents,
@@ -2290,7 +2334,7 @@ function DataIuranWargaView({
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white">DATA IURAN WARGA — DESA KALIKURMO</h2>
+          <h2 className="text-xl font-bold text-white">DATA IURAN MINGGUAN WARGA — DESA KALIKURMO</h2>
           <p className="text-xs text-slate-400">
             Checklist terkunci otomatis berdasarkan transaksi sah di database. Klik nama warga untuk detail & cetak kuitansi.
           </p>
@@ -2308,7 +2352,7 @@ function DataIuranWargaView({
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow-lg"
           >
             <Plus className="w-4 h-4" />
-            Catat Pembayaran Iuran
+            Catat Pembayaran Mingguan
           </button>
         </div>
       </div>
@@ -2392,7 +2436,7 @@ function DataIuranWargaView({
                 <th className="py-3.5 px-4">RT / RW</th>
                 <th className="py-3.5 px-4">Status</th>
                 <th className="py-3.5 px-4">Lunas Sampai</th>
-                <th className="py-3.5 px-4">Keterangan Tunggakan</th>
+                <th className="py-3.5 px-4">Keterangan Tunggakan Mingguan</th>
                 <th className="py-3.5 px-4 text-right">Aksi Cepat</th>
               </tr>
             </thead>
@@ -2423,7 +2467,7 @@ function DataIuranWargaView({
                       {w.nama}
                     </button>
                     <span className="block text-[11px] text-slate-500">
-                      Total Bayar: {formatRupiah(w.computed.totalNominal)} ({w.computed.totalHari} hari)
+                      Total Bayar: {formatRupiah(w.computed.totalNominal)} ({w.computed.totalMinggu} minggu)
                     </span>
                   </td>
                   <td className="py-3.5 px-4 text-slate-300">{w.dusun}</td>
@@ -2437,9 +2481,9 @@ function DataIuranWargaView({
                     {formatDateID(w.computed.lunasSampai)}
                   </td>
                   <td className="py-3.5 px-4">
-                    {w.computed.hariNunggak > 0 ? (
+                    {w.computed.mingguNunggak > 0 ? (
                       <span className="inline-block px-2.5 py-1 rounded-md bg-rose-500/15 border border-rose-500/30 text-rose-300 font-bold text-[11px]">
-                        Nunggak {w.computed.hariNunggak} Hari ({formatRupiah(w.computed.nominalTunggakan)})
+                        Nunggak {w.computed.mingguNunggak} Minggu ({formatRupiah(w.computed.nominalTunggakan)})
                       </span>
                     ) : (
                       <span className="text-emerald-300 font-medium">{w.computed.keteranganTunggakan}</span>
@@ -3003,7 +3047,7 @@ function ProfilKadesSopirView({ villageOfficials, dusunOptions, onUpdateKades, o
 // ============================================================================
 // 6. BUKU KAS UTAMA MOBIL SIAGA DESA KALIKURMO
 // ============================================================================
-function KasMobilSiagaView({ cashLedger, stats, onOpenReceipt }) {
+function KasMobilSiagaView({ cashLedger, stats }) {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -3065,13 +3109,13 @@ function KasMobilSiagaView({ cashLedger, stats, onOpenReceipt }) {
 }
 
 // ============================================================================
-// 7. RIWAYAT PEMBAYARAN PERMANEN
+// 7. RIWAYAT PEMBAYARAN PERMANEN (MINGGUAN)
 // ============================================================================
 function RiwayatPembayaranView({ transactions, onPrintReceipt, onCorrectTrx }) {
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
       <h3 className="text-base font-bold text-white">
-        Riwayat Transaksi Pembayaran Iuran Warga (Tercatat Permanen)
+        Riwayat Transaksi Pembayaran Iuran Mingguan Warga (Tercatat Permanen)
       </h3>
       <div className="overflow-x-auto rounded-xl border border-slate-800">
         <table className="w-full text-left border-collapse">
@@ -3081,49 +3125,53 @@ function RiwayatPembayaranView({ transactions, onPrintReceipt, onCorrectTrx }) {
               <th className="py-3 px-3">Tgl Bayar</th>
               <th className="py-3 px-3">Nama Warga</th>
               <th className="py-3 px-3">Periode Lunas</th>
-              <th className="py-3 px-3">Hari & Tarif</th>
+              <th className="py-3 px-3">Minggu & Tarif</th>
               <th className="py-3 px-3">Nominal</th>
               <th className="py-3 px-3">Admin</th>
               <th className="py-3 px-3 text-right">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800 text-xs">
-            {transactions.map((t) => (
-              <tr key={t.id} className={t.status === 'VOID' ? 'opacity-50 bg-rose-950/20' : 'hover:bg-slate-800/40'}>
-                <td className="py-3 px-3 font-mono text-slate-300">{t.id}</td>
-                <td className="py-3 px-3 text-white">{formatDateID(t.tanggalTransaksi)}</td>
-                <td className="py-3 px-3">
-                  <span className="font-bold text-white block">{t.residentName}</span>
-                  <span className="text-[11px] text-slate-400">
-                    {t.dusun} • RT {t.rt}/RW {t.rw || '01'}
-                  </span>
-                </td>
-                <td className="py-3 px-3 text-emerald-300 font-semibold">
-                  {formatDateID(t.periodeMulai)} s/d {formatDateID(t.periodeAkhir)}
-                </td>
-                <td className="py-3 px-3 text-slate-300">
-                  {t.jumlahHari} hari × {formatRupiah(t.tarifPerHari)}
-                </td>
-                <td className="py-3 px-3 font-bold text-emerald-400">{formatRupiah(t.nominal)}</td>
-                <td className="py-3 px-3 text-slate-400">{t.adminName}</td>
-                <td className="py-3 px-3 text-right space-x-1.5 whitespace-nowrap">
-                  <button
-                    onClick={() => onPrintReceipt(t)}
-                    className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200"
-                  >
-                    Kuitansi
-                  </button>
-                  {t.status === 'VALID' && (
+            {transactions.map((t) => {
+              const weeks = t.jumlahMinggu || Math.max(1, Math.round((t.jumlahHari || 7) / 7));
+              const rateW = t.tarifPerMinggu || t.tarifPerHari || 5000;
+              return (
+                <tr key={t.id} className={t.status === 'VOID' ? 'opacity-50 bg-rose-950/20' : 'hover:bg-slate-800/40'}>
+                  <td className="py-3 px-3 font-mono text-slate-300">{t.id}</td>
+                  <td className="py-3 px-3 text-white">{formatDateID(t.tanggalTransaksi)}</td>
+                  <td className="py-3 px-3">
+                    <span className="font-bold text-white block">{t.residentName}</span>
+                    <span className="text-[11px] text-slate-400">
+                      {t.dusun} • RT {t.rt}/RW {t.rw || '01'}
+                    </span>
+                  </td>
+                  <td className="py-3 px-3 text-emerald-300 font-semibold">
+                    {formatDateID(t.periodeMulai)} s/d {formatDateID(t.periodeAkhir)}
+                  </td>
+                  <td className="py-3 px-3 text-slate-300">
+                    {weeks} minggu × {formatRupiah(rateW)}
+                  </td>
+                  <td className="py-3 px-3 font-bold text-emerald-400">{formatRupiah(t.nominal)}</td>
+                  <td className="py-3 px-3 text-slate-400">{t.adminName}</td>
+                  <td className="py-3 px-3 text-right space-x-1.5 whitespace-nowrap">
                     <button
-                      onClick={() => onCorrectTrx(t)}
-                      className="px-2.5 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300"
+                      onClick={() => onPrintReceipt(t)}
+                      className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200"
                     >
-                      Koreksi
+                      Kuitansi
                     </button>
-                  )}
-                </td>
-              </tr>
-            ))}
+                    {t.status === 'VALID' && (
+                      <button
+                        onClick={() => onCorrectTrx(t)}
+                        className="px-2.5 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300"
+                      >
+                        Koreksi
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -3132,9 +3180,9 @@ function RiwayatPembayaranView({ transactions, onPrintReceipt, onCorrectTrx }) {
 }
 
 // ============================================================================
-// 8. PENGATURAN NOMINAL IURAN (DINAMIS & HISTORI TARIF)
+// 8. PENGATURAN NOMINAL IURAN MINGGUAN (DINAMIS & HISTORI TARIF)
 // ============================================================================
-function PengaturanIuranView({ rates, activeRate, auditLogs, systemDate, onAddRate }) {
+function PengaturanIuranView({ rates, activeRate, systemDate, onAddRate }) {
   const [nominal, setNominal] = useState(String(activeRate.nominal));
   const [effectiveDate, setEffectiveDate] = useState(systemDate);
   const [keterangan, setKeterangan] = useState('');
@@ -3142,44 +3190,44 @@ function PengaturanIuranView({ rates, activeRate, auditLogs, systemDate, onAddRa
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-        <h3 className="text-base font-bold text-white">PENGATURAN → PENGATURAN IURAN HARIAN</h3>
+        <h3 className="text-base font-bold text-white">PENGATURAN → PENGATURAN IURAN MINGGUAN</h3>
         <p className="text-xs text-slate-400">
-          Perubahan nominal iuran tidak akan mengubah transaksi pembayaran lama yang sudah tersimpan di database.
+          Perubahan nominal iuran mingguan tidak akan mengubah transaksi pembayaran lama yang sudah tersimpan di database.
         </p>
 
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => {
-              setNominal('2000');
+              setNominal('5000');
               setEffectiveDate('2026-01-01');
-              setKeterangan('Keputusan Desa Kalikurmo Tahun 2026: Rp2.000/hari');
+              setKeterangan('Keputusan Desa Kalikurmo Tahun 2026: Rp5.000/minggu');
             }}
             className="px-3 py-1.5 rounded-lg bg-slate-800 text-xs text-emerald-300 font-semibold"
           >
-            Preset 2026: Rp2.000
+            Preset 2026: Rp5.000 / minggu
           </button>
           <button
             type="button"
             onClick={() => {
-              setNominal('3000');
+              setNominal('7000');
               setEffectiveDate('2027-01-01');
-              setKeterangan('Keputusan Desa Kalikurmo Tahun 2027: Rp3.000/hari');
+              setKeterangan('Keputusan Desa Kalikurmo Tahun 2027: Rp7.000/minggu');
             }}
             className="px-3 py-1.5 rounded-lg bg-slate-800 text-xs text-sky-300 font-semibold"
           >
-            Preset 2027: Rp3.000
+            Preset 2027: Rp7.000 / minggu
           </button>
           <button
             type="button"
             onClick={() => {
-              setNominal('5000');
+              setNominal('10000');
               setEffectiveDate('2028-01-01');
-              setKeterangan('Keputusan Desa Kalikurmo Tahun 2028: Rp5.000/hari');
+              setKeterangan('Keputusan Desa Kalikurmo Tahun 2028: Rp10.000/minggu');
             }}
             className="px-3 py-1.5 rounded-lg bg-slate-800 text-xs text-amber-300 font-semibold"
           >
-            Preset 2028: Rp5.000
+            Preset 2028: Rp10.000 / minggu
           </button>
         </div>
 
@@ -3192,7 +3240,7 @@ function PengaturanIuranView({ rates, activeRate, auditLogs, systemDate, onAddRa
           className="space-y-3 text-xs"
         >
           <div>
-            <label className="block text-slate-300 mb-1">Nominal Iuran Harian Baru (Rp)</label>
+            <label className="block text-slate-300 mb-1">Nominal Iuran Mingguan Baru (Rp / Minggu)</label>
             <input
               type="number"
               value={nominal}
@@ -3223,18 +3271,18 @@ function PengaturanIuranView({ rates, activeRate, auditLogs, systemDate, onAddRa
             type="submit"
             className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
           >
-            Simpan Tarif Baru
+            Simpan Tarif Mingguan Baru
           </button>
         </form>
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-        <h3 className="text-base font-bold text-white">Riwayat Perubahan Nominal & Audit Log</h3>
+        <h3 className="text-base font-bold text-white">Riwayat Perubahan Nominal Mingguan</h3>
         <div className="space-y-2.5">
           {rates.map((r) => (
             <div key={r.id} className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs">
               <div className="flex justify-between font-bold text-white">
-                <span>{formatRupiah(r.nominal)} / hari</span>
+                <span>{formatRupiah(r.nominal)} / minggu</span>
                 <span className="text-emerald-400">Mulai: {formatDateID(r.effectiveDate)}</span>
               </div>
               <p className="text-slate-300 mt-1">{r.keterangan}</p>
@@ -3248,27 +3296,33 @@ function PengaturanIuranView({ rates, activeRate, auditLogs, systemDate, onAddRa
 }
 
 // ============================================================================
-// 9. INTEGRASI REALTIME GOOGLE SHEET & KODE.GS
+// 9. TEMPAT INPUT LINK GOOGLE SHEET & KODE.GS
 // ============================================================================
 function DatabaseSheetView({ sheetUrl, setSheetUrl, syncStatus, lastSyncTime, onSyncNow, onFetchNow, copiedCode, onCopyCode }) {
   return (
     <div className="space-y-6">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-        <h3 className="text-base font-bold text-white flex items-center gap-2">
-          <Database className="w-5 h-5 text-emerald-400" />
-          Integrasi Database Real-Time Google Sheets Desa Kalikurmo
-        </h3>
+      <div className="bg-slate-900 border-2 border-emerald-500/40 rounded-2xl p-5 space-y-4">
+        <div className="space-y-1">
+          <h3 className="text-base font-bold text-white flex items-center gap-2">
+            <Database className="w-5 h-5 text-emerald-400" />
+            TEMPAT MEMASUKKAN LINK WEB APP GOOGLE APPS SCRIPT
+          </h3>
+          <p className="text-xs text-slate-300">
+            Tempelkan (*Paste*) URL Web App dari Google Apps Script Anda (`https://script.google.com/macros/s/..../exec`) di kotak di bawah ini, lalu klik <strong>Simpan ke Google Sheet</strong>.
+          </p>
+        </div>
+
         <div className="flex flex-col sm:flex-row gap-3">
           <input
             type="text"
             value={sheetUrl}
             onChange={(e) => setSheetUrl(e.target.value)}
-            placeholder="Tempel URL Web App Google Script (https://script.google.com/macros/s/.../exec)"
-            className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white"
+            placeholder="Tempel link di sini: https://script.google.com/macros/s/......./exec"
+            className="flex-1 bg-slate-950 border border-emerald-500/50 rounded-xl px-4 py-2.5 text-xs text-white font-mono"
           />
           <button
             onClick={onSyncNow}
-            className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
+            className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg"
           >
             Simpan ke Google Sheet
           </button>
@@ -3279,9 +3333,15 @@ function DatabaseSheetView({ sheetUrl, setSheetUrl, syncStatus, lastSyncTime, on
             Muat dari Google Sheet
           </button>
         </div>
-        <p className="text-xs text-slate-400">
-          Status Sinkronisasi: <strong className="text-emerald-400">{syncStatus}</strong> • Terakhir Update: {lastSyncTime}
-        </p>
+
+        <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-300 space-y-1">
+          <p>
+            Status Sinkronisasi: <strong className="text-emerald-400">{syncStatus}</strong> • Terakhir Update: <strong>{lastSyncTime}</strong>
+          </p>
+          <p className="text-[11px] text-amber-300">
+            Tips GitHub Pages: Agar HP warga otomatis terhubung tanpa perlu menempelkan link lagi, tempelkan juga link tersebut pada <strong>baris ke-16</strong> di file <code>app.jsx</code> (<code>const DEFAULT_SHEET_URL = 'LINK_ANDA';</code>).
+          </p>
+        </div>
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
@@ -3304,7 +3364,7 @@ function DatabaseSheetView({ sheetUrl, setSheetUrl, syncStatus, lastSyncTime, on
 }
 
 // ============================================================================
-// MODAL DETAIL WARGA, FORM PEMBAYARAN, KUITANSI, KOREKSI, TAMBAH WARGA
+// MODAL DETAIL WARGA, FORM PEMBAYARAN MINGGUAN, KUITANSI, KOREKSI, TAMBAH WARGA
 // ============================================================================
 function ResidentDetailModal({ resident, activeRate, onClose, onOpenPayment, onPrintReceipt, onCorrectTrx }) {
   return (
@@ -3314,7 +3374,7 @@ function ResidentDetailModal({ resident, activeRate, onClose, onOpenPayment, onP
           <div>
             <h3 className="text-lg font-extrabold text-white">{resident.nama}</h3>
             <p className="text-xs text-slate-400">
-              {resident.dusun} • RT {resident.rt} / RW {resident.rw || '01'} • Tarif Aktif: {formatRupiah(activeRate.nominal)}/hari
+              {resident.dusun} • RT {resident.rt} / RW {resident.rw || '01'} • Tarif Aktif: {formatRupiah(activeRate.nominal)}/minggu
             </p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white text-sm font-bold">✕ Tutup</button>
@@ -3334,29 +3394,32 @@ function ResidentDetailModal({ resident, activeRate, onClose, onOpenPayment, onP
           <div className="bg-slate-950 border border-slate-800 rounded-xl p-3">
             <span className="text-slate-400 block">Total Sudah Dibayar</span>
             <span className="text-sm font-bold text-emerald-400 mt-1 block">
-              {formatRupiah(resident.computed.totalNominal)} ({resident.computed.totalHari} hari)
+              {formatRupiah(resident.computed.totalNominal)} ({resident.computed.totalMinggu} minggu)
             </span>
           </div>
           <div className="bg-slate-950 border border-slate-800 rounded-xl p-3">
-            <span className="text-slate-400 block">Info Tunggakan</span>
+            <span className="text-slate-400 block">Info Tunggakan Mingguan</span>
             <span className="text-xs font-bold text-rose-400 mt-1 block">{resident.computed.keteranganTunggakan}</span>
           </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <button onClick={() => onOpenPayment('1_MINGGU')} className="px-3.5 py-2 rounded-xl bg-slate-800 text-white text-xs font-bold">
+            + Bayar 1 Minggu
+          </button>
           <button onClick={() => onOpenPayment('1_BULAN')} className="px-3.5 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold">
-            + Lunasi 1 Bulan
+            + Lunasi 1 Bulan (4 Minggu)
           </button>
           <button onClick={() => onOpenPayment('1_TAHUN')} className="px-3.5 py-2 rounded-xl bg-sky-600 text-white text-xs font-bold">
-            + Lunasi 1 Tahun
+            + Lunasi 1 Tahun (52 Minggu)
           </button>
           <button onClick={() => onOpenPayment('CUSTOM')} className="px-3.5 py-2 rounded-xl bg-slate-800 text-slate-200 text-xs font-bold">
-            Pilih Periode Sendiri
+            Pilih Jumlah Minggu Sendiri
           </button>
         </div>
 
         <div className="space-y-2">
-          <h4 className="text-xs font-bold uppercase text-slate-400">Riwayat Pembayaran Warga</h4>
+          <h4 className="text-xs font-bold uppercase text-slate-400">Riwayat Pembayaran Mingguan Warga</h4>
           <div className="overflow-x-auto rounded-xl border border-slate-800">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
@@ -3364,31 +3427,34 @@ function ResidentDetailModal({ resident, activeRate, onClose, onOpenPayment, onP
                   <th className="py-2.5 px-3">No Trx</th>
                   <th className="py-2.5 px-3">Tgl Bayar</th>
                   <th className="py-2.5 px-3">Periode</th>
-                  <th className="py-2.5 px-3">Jml Hari</th>
+                  <th className="py-2.5 px-3">Jml Minggu</th>
                   <th className="py-2.5 px-3">Nominal</th>
                   <th className="py-2.5 px-3 text-right">Kuitansi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800">
-                {resident.computed.riwayat.map((t) => (
-                  <tr key={t.id}>
-                    <td className="py-2.5 px-3 font-mono">{t.id}</td>
-                    <td className="py-2.5 px-3">{formatDateID(t.tanggalTransaksi)}</td>
-                    <td className="py-2.5 px-3 text-emerald-300">
-                      {formatDateID(t.periodeMulai)} - {formatDateID(t.periodeAkhir)}
-                    </td>
-                    <td className="py-2.5 px-3">{t.jumlahHari} hari</td>
-                    <td className="py-2.5 px-3 font-bold text-emerald-400">{formatRupiah(t.nominal)}</td>
-                    <td className="py-2.5 px-3 text-right space-x-1">
-                      <button onClick={() => onPrintReceipt(t)} className="px-2 py-1 rounded bg-slate-800 text-white">
-                        Cetak
-                      </button>
-                      <button onClick={() => onCorrectTrx(t)} className="px-2 py-1 rounded bg-rose-500/20 text-rose-300">
-                        Koreksi
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {resident.computed.riwayat.map((t) => {
+                  const weeks = t.jumlahMinggu || Math.max(1, Math.round((t.jumlahHari || 7) / 7));
+                  return (
+                    <tr key={t.id}>
+                      <td className="py-2.5 px-3 font-mono">{t.id}</td>
+                      <td className="py-2.5 px-3">{formatDateID(t.tanggalTransaksi)}</td>
+                      <td className="py-2.5 px-3 text-emerald-300">
+                        {formatDateID(t.periodeMulai)} - {formatDateID(t.periodeAkhir)}
+                      </td>
+                      <td className="py-2.5 px-3">{weeks} minggu</td>
+                      <td className="py-2.5 px-3 font-bold text-emerald-400">{formatRupiah(t.nominal)}</td>
+                      <td className="py-2.5 px-3 text-right space-x-1">
+                        <button onClick={() => onPrintReceipt(t)} className="px-2 py-1 rounded bg-slate-800 text-white">
+                          Cetak
+                        </button>
+                        <button onClick={() => onCorrectTrx(t)} className="px-2 py-1 rounded bg-rose-500/20 text-rose-300">
+                          Koreksi
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -3412,7 +3478,7 @@ function PaymentFormModal({ resident, allResidents, presetType, rates, systemDat
   const [tanggalTransaksi, setTanggalTransaksi] = useState(systemDate);
   const [periodeMulai, setPeriodeMulai] = useState(defaultStart);
   const [modePaket, setModePaket] = useState(presetType || '1_BULAN');
-  const [customDays, setCustomDays] = useState(30);
+  const [customWeeks, setCustomWeeks] = useState(4);
   const [keterangan, setKeterangan] = useState('');
 
   useEffect(() => {
@@ -3420,59 +3486,54 @@ function PaymentFormModal({ resident, allResidents, presetType, rates, systemDat
   }, [defaultStart]);
 
   const calcResult = useMemo(() => {
-    let end = periodeMulai;
-    let label = 'Lunas 1 Bulan';
-    if (modePaket === '1_HARI') {
-      end = periodeMulai;
-      label = 'Bayar 1 Hari';
-    } else if (modePaket === '7_HARI') {
-      end = addDays(periodeMulai, 6);
-      label = 'Bayar 1 Minggu (7 Hari)';
-    } else if (modePaket === '30_HARI') {
-      end = addDays(periodeMulai, 29);
-      label = 'Paket 30 Hari';
-    } else if (modePaket === '90_HARI') {
-      end = addDays(periodeMulai, 89);
-      label = 'Paket 90 Hari';
-    } else if (modePaket === '180_HARI') {
-      end = addDays(periodeMulai, 179);
-      label = 'Paket 180 Hari';
+    let weeks = 4;
+    let label = 'Lunas 1 Bulan (4 Minggu)';
+    if (modePaket === '1_MINGGU') {
+      weeks = 1;
+      label = 'Bayar 1 Minggu';
+    } else if (modePaket === '2_MINGGU') {
+      weeks = 2;
+      label = 'Bayar 2 Minggu';
+    } else if (modePaket === '3_MINGGU') {
+      weeks = 3;
+      label = 'Bayar 3 Minggu';
     } else if (modePaket === '1_BULAN') {
-      end = addCalendarMonthsInclusive(periodeMulai, 1);
-      label = 'Lunas 1 Bulan Kalender';
+      weeks = 4;
+      label = 'Lunas 1 Bulan (4 Minggu)';
     } else if (modePaket === '2_BULAN') {
-      end = addCalendarMonthsInclusive(periodeMulai, 2);
-      label = 'Lunas 2 Bulan Kalender';
+      weeks = 8;
+      label = 'Lunas 2 Bulan (8 Minggu)';
     } else if (modePaket === '3_BULAN') {
-      end = addCalendarMonthsInclusive(periodeMulai, 3);
-      label = 'Lunas 3 Bulan Kalender';
+      weeks = 12;
+      label = 'Lunas 3 Bulan (12 Minggu)';
     } else if (modePaket === '6_BULAN') {
-      end = addCalendarMonthsInclusive(periodeMulai, 6);
-      label = 'Lunas 6 Bulan Kalender';
+      weeks = 26;
+      label = 'Lunas 6 Bulan (26 Minggu)';
     } else if (modePaket === '1_TAHUN') {
-      end = addCalendarYearsInclusive(periodeMulai, 1);
-      label = 'Lunas 1 Tahun Kalender';
+      weeks = 52;
+      label = 'Lunas 1 Tahun (52 Minggu)';
     } else {
-      const d = Math.max(1, Number(customDays) || 1);
-      end = addDays(periodeMulai, d - 1);
-      label = 'Pilih Sendiri (' + d + ' Hari)';
+      weeks = Math.max(1, Number(customWeeks) || 1);
+      label = 'Pilih Sendiri (' + weeks + ' Minggu)';
     }
-    const jmlHari = diffDaysInclusive(periodeMulai, end);
+
+    const totalDays = weeks * 7;
+    const end = addDays(periodeMulai, totalDays - 1);
     const rateObj = getEffectiveRateOnDate(rates, tanggalTransaksi);
     return {
       periodeAkhir: end,
-      jumlahHari: jmlHari,
-      tarif: rateObj.nominal,
-      total: jmlHari * rateObj.nominal,
+      jumlahMinggu: weeks,
+      tarifMingguan: rateObj.nominal,
+      total: weeks * rateObj.nominal,
       paketLabel: label
     };
-  }, [periodeMulai, modePaket, customDays, rates, tanggalTransaksi]);
+  }, [periodeMulai, modePaket, customWeeks, rates, tanggalTransaksi]);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold text-white">Input Pembayaran & Pelunasan Di Muka</h3>
+          <h3 className="text-base font-bold text-white">Input Pembayaran Iuran Mingguan & Pelunasan</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-white text-sm">✕</button>
         </div>
 
@@ -3491,6 +3552,24 @@ function PaymentFormModal({ resident, allResidents, presetType, rates, systemDat
               ))}
             </select>
           </div>
+
+          {currentRes?.computed?.mingguNunggak > 0 && (
+            <div className="bg-rose-950/40 border border-rose-500/30 rounded-xl p-3 flex items-center justify-between">
+              <span className="text-rose-300 font-semibold">
+                Tunggakan: {currentRes.computed.mingguNunggak} Minggu ({formatRupiah(currentRes.computed.nominalTunggakan)})
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setModePaket('CUSTOM');
+                  setCustomWeeks(currentRes.computed.mingguNunggak);
+                }}
+                className="px-2.5 py-1 rounded-lg bg-rose-600 text-white font-bold text-[11px]"
+              >
+                Lunasi {currentRes.computed.mingguNunggak} Minggu
+              </button>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-2">
             <div>
@@ -3514,18 +3593,18 @@ function PaymentFormModal({ resident, allResidents, presetType, rates, systemDat
           </div>
 
           <div>
-            <label className="block text-slate-400 mb-1">Pilih Paket Pelunasan</label>
+            <label className="block text-slate-400 mb-1">Pilih Paket Iuran Mingguan</label>
             <div className="grid grid-cols-3 gap-1.5">
               {[
-                { id: '1_HARI', label: '1 Hari' },
-                { id: '7_HARI', label: '1 Minggu (7 Hr)' },
-                { id: '1_BULAN', label: 'Lunas 1 Bulan' },
-                { id: '2_BULAN', label: 'Lunas 2 Bulan' },
-                { id: '3_BULAN', label: 'Lunas 3 Bulan' },
-                { id: '6_BULAN', label: 'Lunas 6 Bulan' },
-                { id: '1_TAHUN', label: 'Lunas 1 Tahun' },
-                { id: '90_HARI', label: '90 Hari' },
-                { id: 'CUSTOM', label: 'Tentukan Hari' }
+                { id: '1_MINGGU', label: '1 Minggu' },
+                { id: '2_MINGGU', label: '2 Minggu' },
+                { id: '1_BULAN', label: '1 Bulan (4 Mg)' },
+                { id: '2_BULAN', label: '2 Bulan (8 Mg)' },
+                { id: '3_BULAN', label: '3 Bulan (12 Mg)' },
+                { id: '6_BULAN', label: '6 Bulan (26 Mg)' },
+                { id: '1_TAHUN', label: '1 Tahun (52 Mg)' },
+                { id: '3_MINGGU', label: '3 Minggu' },
+                { id: 'CUSTOM', label: 'Tentukan Minggu' }
               ].map((p) => (
                 <button
                   key={p.id}
@@ -3546,12 +3625,12 @@ function PaymentFormModal({ resident, allResidents, presetType, rates, systemDat
 
           {modePaket === 'CUSTOM' && (
             <div>
-              <label className="block text-slate-400 mb-1">Masukkan Jumlah Hari</label>
+              <label className="block text-slate-400 mb-1">Masukkan Jumlah Minggu</label>
               <input
                 type="number"
                 min="1"
-                value={customDays}
-                onChange={(e) => setCustomDays(e.target.value)}
+                value={customWeeks}
+                onChange={(e) => setCustomWeeks(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
               />
             </div>
@@ -3565,9 +3644,9 @@ function PaymentFormModal({ resident, allResidents, presetType, rates, systemDat
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-300">Perhitungan Hari Kalender:</span>
+              <span className="text-slate-300">Perhitungan Mingguan:</span>
               <span className="font-bold text-emerald-300">
-                {calcResult.jumlahHari} Hari × {formatRupiah(calcResult.tarif)}
+                {calcResult.jumlahMinggu} Minggu × {formatRupiah(calcResult.tarifMingguan)}
               </span>
             </div>
             <div className="flex justify-between pt-1 border-t border-emerald-500/20 text-sm">
@@ -3598,7 +3677,7 @@ function PaymentFormModal({ resident, allResidents, presetType, rates, systemDat
                   tanggalTransaksi,
                   periodeMulai,
                   periodeAkhir: calcResult.periodeAkhir,
-                  jumlahHari: calcResult.jumlahHari,
+                  jumlahMinggu: calcResult.jumlahMinggu,
                   paketLabel: calcResult.paketLabel,
                   keterangan
                 })
@@ -3615,11 +3694,13 @@ function PaymentFormModal({ resident, allResidents, presetType, rates, systemDat
 }
 
 function ReceiptPrintModal({ trx, onClose }) {
+  const weeks = trx.jumlahMinggu || Math.max(1, Math.round((trx.jumlahHari || 7) / 7));
+  const rateW = trx.tarifPerMinggu || trx.tarifPerHari || 5000;
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white text-slate-900 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
         <div className="text-center border-b-2 border-dashed border-slate-300 pb-3">
-          <h3 className="text-base font-extrabold uppercase">KUITANSI RESMI IURAN MOBIL SIAGA</h3>
+          <h3 className="text-base font-extrabold uppercase">KUITANSI RESMI IURAN MINGGUAN MOBIL SIAGA</h3>
           <p className="text-xs font-bold text-emerald-700">PEMERINTAH DESA KALIKURMO</p>
           <p className="text-[11px] text-slate-500">Nomor: {trx.id}</p>
         </div>
@@ -3641,8 +3722,8 @@ function ReceiptPrintModal({ trx, onClose }) {
             <span className="font-bold">{formatDateID(trx.periodeMulai)} s/d {formatDateID(trx.periodeAkhir)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-slate-500">Jumlah Hari & Tarif:</span>
-            <span>{trx.jumlahHari} Hari × {formatRupiah(trx.tarifPerHari)}</span>
+            <span className="text-slate-500">Jumlah Minggu & Tarif:</span>
+            <span>{weeks} Minggu × {formatRupiah(rateW)}</span>
           </div>
           <div className="flex justify-between pt-2 border-t border-slate-200 text-sm font-extrabold">
             <span>TOTAL DITERIMA:</span>
