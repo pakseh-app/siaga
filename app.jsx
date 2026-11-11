@@ -13,7 +13,7 @@ const RT_RW_LIST = Array.from({ length: 15 }, (_, i) => String(i + 1).padStart(2
 
 // Kunci penyimpanan lokal & URL Google Sheet Default
 const STORAGE_KEY = 'SIMOSD_DESA_KALIKURMO_V3';
-const DEFAULT_SHEET_URL = '';
+const DEFAULT_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyCxdTF-88mw3GVkKwXiiDecmz07ZgUcckd8TbzMGSpfSNPYNzthUDIyfU5IjpVutG2/exec';
 
 // Kode Google Apps Script (Kode.gs) bebas konflik karakter
 const KODE_GS_SCRIPT = [
