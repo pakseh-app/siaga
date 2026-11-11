@@ -2635,3 +2635,1168 @@ function RiwayatAntarWargaView({ tripLogs, residents, drivers, dusunOptions, sys
           <input
             type="text"
             value={keperluan}
+            onChange={(e) => setKeperluan(e.target.value)}
+            placeholder="Contoh: Rujukan Darurat / Kontrol Pasien"
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs text-slate-400 mb-1">Sopir yang Bertugas</label>
+          <select
+            value={driverId}
+            onChange={(e) => setDriverId(e.target.value)}
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"
+          >
+            {drivers.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.nama} ({d.noHP})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-xs text-rose-300 mb-1">Uang Keluar BBM (Rp)</label>
+            <input
+              type="number"
+              min="0"
+              value={uangKeluar}
+              onChange={(e) => setUangKeluar(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-emerald-300 mb-1">Uang Masuk / Infaq (Rp)</label>
+            <input
+              type="number"
+              min="0"
+              value={uangMasuk}
+              onChange={(e) => setUangMasuk(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"
+            />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg"
+        >
+          Simpan Riwayat Perjalanan & Kas
+        </button>
+      </form>
+
+      {/* Tabel Riwayat Pemakaian Mobil Siaga */}
+      <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+        <h3 className="text-base font-bold text-white">
+          Daftar Riwayat Pemakaian Mobil Siaga & Rincian Uang Keluar/Masuk
+        </h3>
+        <div className="overflow-x-auto rounded-xl border border-slate-800">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-950 text-[11px] uppercase text-slate-400 border-b border-slate-800">
+                <th className="py-3 px-3">Tanggal & Jam</th>
+                <th className="py-3 px-3">Warga Diantar</th>
+                <th className="py-3 px-3">Tujuan & Keperluan</th>
+                <th className="py-3 px-3">Sopir</th>
+                <th className="py-3 px-3">Uang Keluar (BBM)</th>
+                <th className="py-3 px-3">Uang Masuk</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800 text-xs">
+              {tripLogs.map((t) => (
+                <tr key={t.id} className="hover:bg-slate-800/40">
+                  <td className="py-3 px-3 whitespace-nowrap">
+                    <span className="font-bold text-white block">{formatDateID(t.tanggal)}</span>
+                    <span className="text-[11px] text-slate-400">{t.waktu}</span>
+                  </td>
+                  <td className="py-3 px-3">
+                    <span className="font-bold text-white block">{t.residentName}</span>
+                    <span className="text-[11px] text-slate-400">
+                      {t.dusun} • RT {t.rt}/RW {t.rw || '01'}
+                    </span>
+                  </td>
+                  <td className="py-3 px-3">
+                    <span className="font-bold text-emerald-300 block">{t.tujuan}</span>
+                    <span className="text-[11px] text-slate-300">{t.keperluan}</span>
+                  </td>
+                  <td className="py-3 px-3 text-slate-200 font-semibold">{t.driverName}</td>
+                  <td className="py-3 px-3 font-bold text-rose-400">{formatRupiah(t.uangKeluar)}</td>
+                  <td className="py-3 px-3 font-bold text-emerald-400">{formatRupiah(t.uangMasuk)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// 5. PROFIL KEPALA DESA & SOPIR + FITUR UPLOAD FOTO
+// ============================================================================
+function ProfilKadesSopirView({ villageOfficials, dusunOptions, onUpdateKades, onSaveDriver, showToast }) {
+  const [kadesForm, setKadesForm] = useState(villageOfficials.kades);
+  const [editingDriver, setEditingDriver] = useState(null);
+
+  const handleImageUpload = (file, callback) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      callback(ev.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Form Edit Profil Kepala Desa Kalikurmo */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+          <h3 className="text-base font-bold text-white flex items-center gap-2">
+            <Award className="w-5 h-5 text-amber-400" />
+            Profil Kepala Desa Kalikurmo (Upload Foto & Kontak)
+          </h3>
+
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              {kadesForm.fotoUrl ? (
+                <img
+                  src={kadesForm.fotoUrl}
+                  alt={kadesForm.nama}
+                  className="w-20 h-20 rounded-2xl object-cover border-2 border-amber-400"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 font-extrabold text-2xl">
+                  KD
+                </div>
+              )}
+              <label className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center cursor-pointer shadow">
+                <Camera className="w-3.5 h-3.5" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) =>
+                    handleImageUpload(e.target.files?.[0], (base64) => {
+                      const updated = { ...kadesForm, fotoUrl: base64 };
+                      setKadesForm(updated);
+                      onUpdateKades(updated);
+                    })
+                  }
+                />
+              </label>
+            </div>
+            <div className="text-xs text-slate-400">
+              <p className="font-bold text-white text-sm">{kadesForm.nama}</p>
+              <p>{kadesForm.jabatan}</p>
+              <p className="text-emerald-400 mt-1">Klik ikon kamera untuk mengunggah foto Kepala Desa</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div>
+              <label className="block text-slate-400 mb-1">Nama Lengkap Kepala Desa</label>
+              <input
+                type="text"
+                value={kadesForm.nama}
+                onChange={(e) => setKadesForm({ ...kadesForm, nama: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-slate-400 mb-1">Nomor HP / WhatsApp</label>
+              <input
+                type="text"
+                value={kadesForm.noHP}
+                onChange={(e) => setKadesForm({ ...kadesForm, noHP: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-slate-400 mb-1">Unit Armada Mobil Siaga</label>
+              <input
+                type="text"
+                value={kadesForm.unitMobil}
+                onChange={(e) => setKadesForm({ ...kadesForm, unitMobil: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-slate-400 mb-1">Pesan Layanan Mobil Siaga Desa Kalikurmo</label>
+              <textarea
+                rows={2}
+                value={kadesForm.pesanSiaga}
+                onChange={(e) => setKadesForm({ ...kadesForm, pesanSiaga: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+              />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onUpdateKades(kadesForm)}
+            className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold"
+          >
+            Simpan Profil Kepala Desa
+          </button>
+        </div>
+
+        {/* Daftar Sopir & Upload Foto Sopir */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Phone className="w-4 h-4 text-emerald-400" />
+              Daftar Sopir Mobil Siaga Desa Kalikurmo
+            </h3>
+            <button
+              onClick={() =>
+                setEditingDriver({
+                  id: '',
+                  nama: '',
+                  panggilan: '',
+                  noHP: '',
+                  shift: 'Siaga 24 Jam',
+                  dusun: dusunOptions[0] || 'Dusun Krajan',
+                  rt: '01',
+                  rw: '01',
+                  statusSiaga: 'SIAGA AKTIF',
+                  pengalaman: 'Sopir Mobil Siaga Desa Kalikurmo',
+                  platMobil: 'H 9912 XA',
+                  fotoUrl: ''
+                })
+              }
+              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
+            >
+              + Tambah Sopir
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {villageOfficials.drivers.map((drv) => (
+              <div key={drv.id} className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    {drv.fotoUrl ? (
+                      <img src={drv.fotoUrl} alt={drv.nama} className="w-14 h-14 rounded-xl object-cover border border-emerald-500" />
+                    ) : (
+                      <div className="w-14 h-14 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-300 font-bold">
+                        {drv.nama.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <label className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center cursor-pointer">
+                      <Camera className="w-3 h-3" />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) =>
+                          handleImageUpload(e.target.files?.[0], (base64) => {
+                            onSaveDriver({ ...drv, fotoUrl: base64 });
+                          })
+                        }
+                      />
+                    </label>
+                  </div>
+                  <div className="text-xs">
+                    <p className="font-bold text-white text-sm">{drv.nama}</p>
+                    <p className="text-emerald-400 font-semibold">{drv.noHP}</p>
+                    <p className="text-slate-400">
+                      {drv.dusun} • RT {drv.rt}/RW {drv.rw || '01'} • {drv.shift}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setEditingDriver(drv)}
+                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 font-semibold"
+                >
+                  Edit
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {editingDriver && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!editingDriver.nama || !editingDriver.noHP) {
+                  showToast('Nama dan Nomor HP Sopir wajib diisi!', 'error');
+                  return;
+                }
+                onSaveDriver(editingDriver);
+                setEditingDriver(null);
+              }}
+              className="bg-slate-950 border border-emerald-500/40 rounded-xl p-4 space-y-3 text-xs"
+            >
+              <h4 className="font-bold text-emerald-300">
+                {editingDriver.id ? 'Edit Profil Sopir' : 'Tambah Sopir Baru'}
+              </h4>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  placeholder="Nama Lengkap Sopir"
+                  value={editingDriver.nama}
+                  onChange={(e) => setEditingDriver({ ...editingDriver, nama: e.target.value })}
+                  className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-white"
+                />
+                <input
+                  type="text"
+                  placeholder="Nomor HP / WA"
+                  value={editingDriver.noHP}
+                  onChange={(e) => setEditingDriver({ ...editingDriver, noHP: e.target.value })}
+                  className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-white"
+                />
+                <input
+                  type="text"
+                  placeholder="Ketik Nama Dusun"
+                  value={editingDriver.dusun}
+                  onChange={(e) => setEditingDriver({ ...editingDriver, dusun: e.target.value })}
+                  className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-white"
+                />
+                <div className="grid grid-cols-2 gap-1">
+                  <select
+                    value={editingDriver.rt}
+                    onChange={(e) => setEditingDriver({ ...editingDriver, rt: e.target.value })}
+                    className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-white"
+                  >
+                    {RT_RW_LIST.map((r) => (
+                      <option key={r} value={r}>RT {r}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={editingDriver.rw || '01'}
+                    onChange={(e) => setEditingDriver({ ...editingDriver, rw: e.target.value })}
+                    className="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-white"
+                  >
+                    {RT_RW_LIST.map((r) => (
+                      <option key={r} value={r}>RW {r}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingDriver(null)}
+                  className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 rounded-lg bg-emerald-600 text-white font-bold"
+                >
+                  Simpan Sopir
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// 6. BUKU KAS UTAMA MOBIL SIAGA DESA KALIKURMO
+// ============================================================================
+function KasMobilSiagaView({ cashLedger, stats, onOpenReceipt }) {
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+          <span className="text-xs text-slate-400">Total Pemasukan Kas</span>
+          <p className="text-2xl font-extrabold text-emerald-400 mt-1">{formatRupiah(stats.totalMasukKas)}</p>
+        </div>
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+          <span className="text-xs text-slate-400">Total Pengeluaran (BBM / Koreksi)</span>
+          <p className="text-2xl font-extrabold text-rose-400 mt-1">{formatRupiah(stats.totalKeluarKas)}</p>
+        </div>
+        <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-4">
+          <span className="text-xs text-emerald-300 font-semibold">Saldo Kas Aktif Mobil Siaga</span>
+          <p className="text-2xl font-extrabold text-white mt-1">{formatRupiah(stats.saldoKas)}</p>
+        </div>
+      </div>
+
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-slate-950 text-[11px] uppercase text-slate-400 border-b border-slate-800">
+              <th className="py-3 px-4">ID Kas</th>
+              <th className="py-3 px-4">Tanggal</th>
+              <th className="py-3 px-4">Tipe</th>
+              <th className="py-3 px-4">Deskripsi</th>
+              <th className="py-3 px-4">Nominal</th>
+              <th className="py-3 px-4">Admin</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800 text-xs">
+            {cashLedger.map((c) => (
+              <tr key={c.id} className="hover:bg-slate-800/40">
+                <td className="py-3 px-4 font-mono text-slate-400">{c.id}</td>
+                <td className="py-3 px-4 text-white">{formatDateID(c.tanggal)}</td>
+                <td className="py-3 px-4">
+                  <span
+                    className={
+                      'px-2 py-0.5 rounded font-bold text-[11px] ' +
+                      (c.tipe === 'MASUK'
+                        ? 'bg-emerald-500/20 text-emerald-300'
+                        : 'bg-rose-500/20 text-rose-300')
+                    }
+                  >
+                    {c.tipe}
+                  </span>
+                </td>
+                <td className="py-3 px-4 text-slate-200">{c.deskripsi}</td>
+                <td className={'py-3 px-4 font-bold ' + (c.tipe === 'MASUK' ? 'text-emerald-400' : 'text-rose-400')}>
+                  {c.tipe === 'MASUK' ? '+' : '-'} {formatRupiah(c.nominal)}
+                </td>
+                <td className="py-3 px-4 text-slate-400">{c.admin}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// 7. RIWAYAT PEMBAYARAN PERMANEN
+// ============================================================================
+function RiwayatPembayaranView({ transactions, onPrintReceipt, onCorrectTrx }) {
+  return (
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+      <h3 className="text-base font-bold text-white">
+        Riwayat Transaksi Pembayaran Iuran Warga (Tercatat Permanen)
+      </h3>
+      <div className="overflow-x-auto rounded-xl border border-slate-800">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-slate-950 text-[11px] uppercase text-slate-400 border-b border-slate-800">
+              <th className="py-3 px-3">No. Transaksi</th>
+              <th className="py-3 px-3">Tgl Bayar</th>
+              <th className="py-3 px-3">Nama Warga</th>
+              <th className="py-3 px-3">Periode Lunas</th>
+              <th className="py-3 px-3">Hari & Tarif</th>
+              <th className="py-3 px-3">Nominal</th>
+              <th className="py-3 px-3">Admin</th>
+              <th className="py-3 px-3 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800 text-xs">
+            {transactions.map((t) => (
+              <tr key={t.id} className={t.status === 'VOID' ? 'opacity-50 bg-rose-950/20' : 'hover:bg-slate-800/40'}>
+                <td className="py-3 px-3 font-mono text-slate-300">{t.id}</td>
+                <td className="py-3 px-3 text-white">{formatDateID(t.tanggalTransaksi)}</td>
+                <td className="py-3 px-3">
+                  <span className="font-bold text-white block">{t.residentName}</span>
+                  <span className="text-[11px] text-slate-400">
+                    {t.dusun} • RT {t.rt}/RW {t.rw || '01'}
+                  </span>
+                </td>
+                <td className="py-3 px-3 text-emerald-300 font-semibold">
+                  {formatDateID(t.periodeMulai)} s/d {formatDateID(t.periodeAkhir)}
+                </td>
+                <td className="py-3 px-3 text-slate-300">
+                  {t.jumlahHari} hari × {formatRupiah(t.tarifPerHari)}
+                </td>
+                <td className="py-3 px-3 font-bold text-emerald-400">{formatRupiah(t.nominal)}</td>
+                <td className="py-3 px-3 text-slate-400">{t.adminName}</td>
+                <td className="py-3 px-3 text-right space-x-1.5 whitespace-nowrap">
+                  <button
+                    onClick={() => onPrintReceipt(t)}
+                    className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200"
+                  >
+                    Kuitansi
+                  </button>
+                  {t.status === 'VALID' && (
+                    <button
+                      onClick={() => onCorrectTrx(t)}
+                      className="px-2.5 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300"
+                    >
+                      Koreksi
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// 8. PENGATURAN NOMINAL IURAN (DINAMIS & HISTORI TARIF)
+// ============================================================================
+function PengaturanIuranView({ rates, activeRate, auditLogs, systemDate, onAddRate }) {
+  const [nominal, setNominal] = useState(String(activeRate.nominal));
+  const [effectiveDate, setEffectiveDate] = useState(systemDate);
+  const [keterangan, setKeterangan] = useState('');
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+        <h3 className="text-base font-bold text-white">PENGATURAN → PENGATURAN IURAN HARIAN</h3>
+        <p className="text-xs text-slate-400">
+          Perubahan nominal iuran tidak akan mengubah transaksi pembayaran lama yang sudah tersimpan di database.
+        </p>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setNominal('2000');
+              setEffectiveDate('2026-01-01');
+              setKeterangan('Keputusan Desa Kalikurmo Tahun 2026: Rp2.000/hari');
+            }}
+            className="px-3 py-1.5 rounded-lg bg-slate-800 text-xs text-emerald-300 font-semibold"
+          >
+            Preset 2026: Rp2.000
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setNominal('3000');
+              setEffectiveDate('2027-01-01');
+              setKeterangan('Keputusan Desa Kalikurmo Tahun 2027: Rp3.000/hari');
+            }}
+            className="px-3 py-1.5 rounded-lg bg-slate-800 text-xs text-sky-300 font-semibold"
+          >
+            Preset 2027: Rp3.000
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setNominal('5000');
+              setEffectiveDate('2028-01-01');
+              setKeterangan('Keputusan Desa Kalikurmo Tahun 2028: Rp5.000/hari');
+            }}
+            className="px-3 py-1.5 rounded-lg bg-slate-800 text-xs text-amber-300 font-semibold"
+          >
+            Preset 2028: Rp5.000
+          </button>
+        </div>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            onAddRate({ nominal, effectiveDate, keterangan });
+            setKeterangan('');
+          }}
+          className="space-y-3 text-xs"
+        >
+          <div>
+            <label className="block text-slate-300 mb-1">Nominal Iuran Harian Baru (Rp)</label>
+            <input
+              type="number"
+              value={nominal}
+              onChange={(e) => setNominal(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-white font-bold"
+            />
+          </div>
+          <div>
+            <label className="block text-slate-300 mb-1">Tanggal Mulai Berlaku</label>
+            <input
+              type="date"
+              value={effectiveDate}
+              onChange={(e) => setEffectiveDate(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-slate-300 mb-1">Keterangan Perubahan Tarif</label>
+            <input
+              type="text"
+              value={keterangan}
+              onChange={(e) => setKeterangan(e.target.value)}
+              placeholder="Contoh: Hasil Musyawarah Desa Kalikurmo"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-white"
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+          >
+            Simpan Tarif Baru
+          </button>
+        </form>
+      </div>
+
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+        <h3 className="text-base font-bold text-white">Riwayat Perubahan Nominal & Audit Log</h3>
+        <div className="space-y-2.5">
+          {rates.map((r) => (
+            <div key={r.id} className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs">
+              <div className="flex justify-between font-bold text-white">
+                <span>{formatRupiah(r.nominal)} / hari</span>
+                <span className="text-emerald-400">Mulai: {formatDateID(r.effectiveDate)}</span>
+              </div>
+              <p className="text-slate-300 mt-1">{r.keterangan}</p>
+              <p className="text-[11px] text-slate-500 mt-1">Diubah oleh: {r.changedBy}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// 9. INTEGRASI REALTIME GOOGLE SHEET & KODE.GS
+// ============================================================================
+function DatabaseSheetView({ sheetUrl, setSheetUrl, syncStatus, lastSyncTime, onSyncNow, onFetchNow, copiedCode, onCopyCode }) {
+  return (
+    <div className="space-y-6">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+        <h3 className="text-base font-bold text-white flex items-center gap-2">
+          <Database className="w-5 h-5 text-emerald-400" />
+          Integrasi Database Real-Time Google Sheets Desa Kalikurmo
+        </h3>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input
+            type="text"
+            value={sheetUrl}
+            onChange={(e) => setSheetUrl(e.target.value)}
+            placeholder="Tempel URL Web App Google Script (https://script.google.com/macros/s/.../exec)"
+            className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white"
+          />
+          <button
+            onClick={onSyncNow}
+            className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
+          >
+            Simpan ke Google Sheet
+          </button>
+          <button
+            onClick={onFetchNow}
+            className="px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold"
+          >
+            Muat dari Google Sheet
+          </button>
+        </div>
+        <p className="text-xs text-slate-400">
+          Status Sinkronisasi: <strong className="text-emerald-400">{syncStatus}</strong> • Terakhir Update: {lastSyncTime}
+        </p>
+      </div>
+
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-bold text-white">Kode Lengkap Backend Google Apps Script (Kode.gs)</h4>
+          <button
+            onClick={onCopyCode}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
+          >
+            {copiedCode ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+            {copiedCode ? 'Tersalin!' : 'Salin Kode.gs'}
+          </button>
+        </div>
+        <pre className="bg-slate-950 border border-slate-800 rounded-xl p-4 text-[11px] text-emerald-300 overflow-x-auto max-h-96">
+          {KODE_GS_SCRIPT}
+        </pre>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// MODAL DETAIL WARGA, FORM PEMBAYARAN, KUITANSI, KOREKSI, TAMBAH WARGA
+// ============================================================================
+function ResidentDetailModal({ resident, activeRate, onClose, onOpenPayment, onPrintReceipt, onCorrectTrx }) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-3xl w-full p-6 space-y-5 my-8">
+        <div className="flex items-start justify-between">
+          <div>
+            <h3 className="text-lg font-extrabold text-white">{resident.nama}</h3>
+            <p className="text-xs text-slate-400">
+              {resident.dusun} • RT {resident.rt} / RW {resident.rw || '01'} • Tarif Aktif: {formatRupiah(activeRate.nominal)}/hari
+            </p>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-white text-sm font-bold">✕ Tutup</button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div className="bg-slate-950 border border-slate-800 rounded-xl p-3">
+            <span className="text-slate-400 block">Status Saat Ini</span>
+            <div className="mt-1">
+              <StatusBadge statusKey={resident.computed.statusKey} label={resident.computed.statusLabel} />
+            </div>
+          </div>
+          <div className="bg-slate-950 border border-slate-800 rounded-xl p-3">
+            <span className="text-slate-400 block">Terakhir Lunas Sampai</span>
+            <span className="text-sm font-bold text-white mt-1 block">{formatDateID(resident.computed.lunasSampai)}</span>
+          </div>
+          <div className="bg-slate-950 border border-slate-800 rounded-xl p-3">
+            <span className="text-slate-400 block">Total Sudah Dibayar</span>
+            <span className="text-sm font-bold text-emerald-400 mt-1 block">
+              {formatRupiah(resident.computed.totalNominal)} ({resident.computed.totalHari} hari)
+            </span>
+          </div>
+          <div className="bg-slate-950 border border-slate-800 rounded-xl p-3">
+            <span className="text-slate-400 block">Info Tunggakan</span>
+            <span className="text-xs font-bold text-rose-400 mt-1 block">{resident.computed.keteranganTunggakan}</span>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => onOpenPayment('1_BULAN')} className="px-3.5 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold">
+            + Lunasi 1 Bulan
+          </button>
+          <button onClick={() => onOpenPayment('1_TAHUN')} className="px-3.5 py-2 rounded-xl bg-sky-600 text-white text-xs font-bold">
+            + Lunasi 1 Tahun
+          </button>
+          <button onClick={() => onOpenPayment('CUSTOM')} className="px-3.5 py-2 rounded-xl bg-slate-800 text-slate-200 text-xs font-bold">
+            Pilih Periode Sendiri
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          <h4 className="text-xs font-bold uppercase text-slate-400">Riwayat Pembayaran Warga</h4>
+          <div className="overflow-x-auto rounded-xl border border-slate-800">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-slate-950 text-slate-400 border-b border-slate-800">
+                  <th className="py-2.5 px-3">No Trx</th>
+                  <th className="py-2.5 px-3">Tgl Bayar</th>
+                  <th className="py-2.5 px-3">Periode</th>
+                  <th className="py-2.5 px-3">Jml Hari</th>
+                  <th className="py-2.5 px-3">Nominal</th>
+                  <th className="py-2.5 px-3 text-right">Kuitansi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800">
+                {resident.computed.riwayat.map((t) => (
+                  <tr key={t.id}>
+                    <td className="py-2.5 px-3 font-mono">{t.id}</td>
+                    <td className="py-2.5 px-3">{formatDateID(t.tanggalTransaksi)}</td>
+                    <td className="py-2.5 px-3 text-emerald-300">
+                      {formatDateID(t.periodeMulai)} - {formatDateID(t.periodeAkhir)}
+                    </td>
+                    <td className="py-2.5 px-3">{t.jumlahHari} hari</td>
+                    <td className="py-2.5 px-3 font-bold text-emerald-400">{formatRupiah(t.nominal)}</td>
+                    <td className="py-2.5 px-3 text-right space-x-1">
+                      <button onClick={() => onPrintReceipt(t)} className="px-2 py-1 rounded bg-slate-800 text-white">
+                        Cetak
+                      </button>
+                      <button onClick={() => onCorrectTrx(t)} className="px-2 py-1 rounded bg-rose-500/20 text-rose-300">
+                        Koreksi
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PaymentFormModal({ resident, allResidents, presetType, rates, systemDate, onClose, onSave }) {
+  const [selectedResId, setSelectedResId] = useState(resident?.id || allResidents[0]?.id);
+  const currentRes = allResidents.find((r) => r.id === selectedResId) || allResidents[0];
+
+  const defaultStart = useMemo(() => {
+    if (currentRes?.computed?.lunasSampai && currentRes.computed.lunasSampai !== '-') {
+      return addDays(currentRes.computed.lunasSampai, 1);
+    }
+    return '2026-11-01';
+  }, [currentRes]);
+
+  const [tanggalTransaksi, setTanggalTransaksi] = useState(systemDate);
+  const [periodeMulai, setPeriodeMulai] = useState(defaultStart);
+  const [modePaket, setModePaket] = useState(presetType || '1_BULAN');
+  const [customDays, setCustomDays] = useState(30);
+  const [keterangan, setKeterangan] = useState('');
+
+  useEffect(() => {
+    setPeriodeMulai(defaultStart);
+  }, [defaultStart]);
+
+  const calcResult = useMemo(() => {
+    let end = periodeMulai;
+    let label = 'Lunas 1 Bulan';
+    if (modePaket === '1_HARI') {
+      end = periodeMulai;
+      label = 'Bayar 1 Hari';
+    } else if (modePaket === '7_HARI') {
+      end = addDays(periodeMulai, 6);
+      label = 'Bayar 1 Minggu (7 Hari)';
+    } else if (modePaket === '30_HARI') {
+      end = addDays(periodeMulai, 29);
+      label = 'Paket 30 Hari';
+    } else if (modePaket === '90_HARI') {
+      end = addDays(periodeMulai, 89);
+      label = 'Paket 90 Hari';
+    } else if (modePaket === '180_HARI') {
+      end = addDays(periodeMulai, 179);
+      label = 'Paket 180 Hari';
+    } else if (modePaket === '1_BULAN') {
+      end = addCalendarMonthsInclusive(periodeMulai, 1);
+      label = 'Lunas 1 Bulan Kalender';
+    } else if (modePaket === '2_BULAN') {
+      end = addCalendarMonthsInclusive(periodeMulai, 2);
+      label = 'Lunas 2 Bulan Kalender';
+    } else if (modePaket === '3_BULAN') {
+      end = addCalendarMonthsInclusive(periodeMulai, 3);
+      label = 'Lunas 3 Bulan Kalender';
+    } else if (modePaket === '6_BULAN') {
+      end = addCalendarMonthsInclusive(periodeMulai, 6);
+      label = 'Lunas 6 Bulan Kalender';
+    } else if (modePaket === '1_TAHUN') {
+      end = addCalendarYearsInclusive(periodeMulai, 1);
+      label = 'Lunas 1 Tahun Kalender';
+    } else {
+      const d = Math.max(1, Number(customDays) || 1);
+      end = addDays(periodeMulai, d - 1);
+      label = 'Pilih Sendiri (' + d + ' Hari)';
+    }
+    const jmlHari = diffDaysInclusive(periodeMulai, end);
+    const rateObj = getEffectiveRateOnDate(rates, tanggalTransaksi);
+    return {
+      periodeAkhir: end,
+      jumlahHari: jmlHari,
+      tarif: rateObj.nominal,
+      total: jmlHari * rateObj.nominal,
+      paketLabel: label
+    };
+  }, [periodeMulai, modePaket, customDays, rates, tanggalTransaksi]);
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-bold text-white">Input Pembayaran & Pelunasan Di Muka</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-white text-sm">✕</button>
+        </div>
+
+        <div className="space-y-3 text-xs">
+          <div>
+            <label className="block text-slate-400 mb-1">Pilih Nama Warga</label>
+            <select
+              value={selectedResId}
+              onChange={(e) => setSelectedResId(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-bold"
+            >
+              {allResidents.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.nama} ({r.dusun} RT {r.rt}/RW {r.rw || '01'})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-slate-400 mb-1">Tanggal Transaksi</label>
+              <input
+                type="date"
+                value={tanggalTransaksi}
+                onChange={(e) => setTanggalTransaksi(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-slate-400 mb-1">Mulai Periode Dibayar</label>
+              <input
+                type="date"
+                value={periodeMulai}
+                onChange={(e) => setPeriodeMulai(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-slate-400 mb-1">Pilih Paket Pelunasan</label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {[
+                { id: '1_HARI', label: '1 Hari' },
+                { id: '7_HARI', label: '1 Minggu (7 Hr)' },
+                { id: '1_BULAN', label: 'Lunas 1 Bulan' },
+                { id: '2_BULAN', label: 'Lunas 2 Bulan' },
+                { id: '3_BULAN', label: 'Lunas 3 Bulan' },
+                { id: '6_BULAN', label: 'Lunas 6 Bulan' },
+                { id: '1_TAHUN', label: 'Lunas 1 Tahun' },
+                { id: '90_HARI', label: '90 Hari' },
+                { id: 'CUSTOM', label: 'Tentukan Hari' }
+              ].map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setModePaket(p.id)}
+                  className={
+                    'py-2 px-2 rounded-lg font-bold border text-[11px] ' +
+                    (modePaket === p.id
+                      ? 'bg-emerald-600 text-white border-emerald-500'
+                      : 'bg-slate-950 text-slate-300 border-slate-800')
+                  }
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {modePaket === 'CUSTOM' && (
+            <div>
+              <label className="block text-slate-400 mb-1">Masukkan Jumlah Hari</label>
+              <input
+                type="number"
+                min="1"
+                value={customDays}
+                onChange={(e) => setCustomDays(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+              />
+            </div>
+          )}
+
+          <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-3.5 space-y-1">
+            <div className="flex justify-between">
+              <span className="text-slate-300">Periode Lunas:</span>
+              <span className="font-bold text-white">
+                {formatDateID(periodeMulai)} s/d {formatDateID(calcResult.periodeAkhir)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-300">Perhitungan Hari Kalender:</span>
+              <span className="font-bold text-emerald-300">
+                {calcResult.jumlahHari} Hari × {formatRupiah(calcResult.tarif)}
+              </span>
+            </div>
+            <div className="flex justify-between pt-1 border-t border-emerald-500/20 text-sm">
+              <span className="font-bold text-white">Total Bayar:</span>
+              <span className="font-extrabold text-emerald-400">{formatRupiah(calcResult.total)}</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-slate-400 mb-1">Keterangan (Opsional)</label>
+            <input
+              type="text"
+              value={keterangan}
+              onChange={(e) => setKeterangan(e.target.value)}
+              placeholder="Catatan pembayaran..."
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button onClick={onClose} className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-semibold">
+              Batal
+            </button>
+            <button
+              onClick={() =>
+                onSave({
+                  residentId: selectedResId,
+                  tanggalTransaksi,
+                  periodeMulai,
+                  periodeAkhir: calcResult.periodeAkhir,
+                  jumlahHari: calcResult.jumlahHari,
+                  paketLabel: calcResult.paketLabel,
+                  keterangan
+                })
+              }
+              className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg"
+            >
+              Simpan Pembayaran
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReceiptPrintModal({ trx, onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white text-slate-900 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+        <div className="text-center border-b-2 border-dashed border-slate-300 pb-3">
+          <h3 className="text-base font-extrabold uppercase">KUITANSI RESMI IURAN MOBIL SIAGA</h3>
+          <p className="text-xs font-bold text-emerald-700">PEMERINTAH DESA KALIKURMO</p>
+          <p className="text-[11px] text-slate-500">Nomor: {trx.id}</p>
+        </div>
+        <div className="space-y-2 text-xs">
+          <div className="flex justify-between">
+            <span className="text-slate-500">Nama Warga:</span>
+            <span className="font-bold">{trx.residentName}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500">Wilayah:</span>
+            <span>{trx.dusun} • RT {trx.rt} / RW {trx.rw || '01'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500">Tanggal Bayar:</span>
+            <span>{formatDateLongID(trx.tanggalTransaksi)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500">Periode Lunas:</span>
+            <span className="font-bold">{formatDateID(trx.periodeMulai)} s/d {formatDateID(trx.periodeAkhir)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500">Jumlah Hari & Tarif:</span>
+            <span>{trx.jumlahHari} Hari × {formatRupiah(trx.tarifPerHari)}</span>
+          </div>
+          <div className="flex justify-between pt-2 border-t border-slate-200 text-sm font-extrabold">
+            <span>TOTAL DITERIMA:</span>
+            <span className="text-emerald-700">{formatRupiah(trx.nominal)}</span>
+          </div>
+          <p className="text-[11px] text-slate-500 pt-2">Petugas Pencatat: {trx.adminName}</p>
+        </div>
+        <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+          <button onClick={onClose} className="px-4 py-1.5 rounded-lg bg-slate-200 text-slate-700 text-xs font-bold">
+            Tutup
+          </button>
+          <button onClick={() => window.print()} className="px-4 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold">
+            Cetak Kuitansi
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CorrectionDialogModal({ trx, onClose, onConfirm }) {
+  const [reason, setReason] = useState('');
+  return (
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-slate-900 border border-rose-500/40 rounded-2xl max-w-md w-full p-6 space-y-4">
+        <h3 className="text-base font-bold text-white">Koreksi Transaksi {trx.id}</h3>
+        <p className="text-xs text-slate-300">
+          Membatalkan transaksi an. <strong>{trx.residentName}</strong> ({formatRupiah(trx.nominal)}). Wajib mengisi alasan untuk Audit Log.
+        </p>
+        <textarea
+          rows={3}
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="Tulis alasan koreksi..."
+          className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white"
+        />
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold">
+            Batal
+          </button>
+          <button
+            onClick={() => onConfirm(trx.id, reason)}
+            className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold"
+          >
+            Konfirmasi Koreksi
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AddResidentModal({ dusunOptions, onClose, onSave }) {
+  const [nama, setNama] = useState('');
+  const [dusun, setDusun] = useState(dusunOptions[0] || 'Dusun Krajan');
+  const [rt, setRt] = useState('01');
+  const [rw, setRw] = useState('01');
+  const [noKK, setNoKK] = useState('');
+  const [noHP, setNoHP] = useState('');
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!nama.trim() || !dusun.trim()) return;
+          onSave({ nama, dusun, rt, rw, noKK, noHP });
+        }}
+        className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-3.5 text-xs"
+      >
+        <h3 className="text-base font-bold text-white">Tambah Warga Baru — Desa Kalikurmo</h3>
+        <div>
+          <label className="block text-slate-400 mb-1">Nama Lengkap Warga</label>
+          <input
+            type="text"
+            required
+            value={nama}
+            onChange={(e) => setNama(e.target.value)}
+            placeholder="Masukkan nama warga..."
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+          />
+        </div>
+        <div>
+          <label className="block text-slate-400 mb-1">Nama Dusun (Bisa Ketik Manual)</label>
+          <input
+            type="text"
+            required
+            list="dusun-list-kalikurmo"
+            value={dusun}
+            onChange={(e) => setDusun(e.target.value)}
+            placeholder="Ketik nama dusun..."
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+          />
+          <datalist id="dusun-list-kalikurmo">
+            {dusunOptions.map((d) => (
+              <option key={d} value={d} />
+            ))}
+          </datalist>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-slate-400 mb-1">Pilih RT (01 - 15)</label>
+            <select
+              value={rt}
+              onChange={(e) => setRt(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+            >
+              {RT_RW_LIST.map((r) => (
+                <option key={r} value={r}>RT {r}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-slate-400 mb-1">Pilih RW (01 - 15)</label>
+            <select
+              value={rw}
+              onChange={(e) => setRw(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+            >
+              {RT_RW_LIST.map((r) => (
+                <option key={r} value={r}>RW {r}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-slate-400 mb-1">No. KK (Disembunyikan di Publik)</label>
+            <input
+              type="text"
+              value={noKK}
+              onChange={(e) => setNoKK(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-slate-400 mb-1">No. HP Warga</label>
+            <input
+              type="text"
+              value={noHP}
+              onChange={(e) => setNoHP(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+            />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-semibold">
+            Batal
+          </button>
+          <button type="submit" className="px-5 py-2 rounded-xl bg-emerald-600 text-white font-bold">
+            Simpan Warga
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
